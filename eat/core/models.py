@@ -89,13 +89,51 @@ class Groupoid():
 
 class TermOperation():
 
-    def __init__(self, groupoid):
+    def __init__(self, groupoid, random=False):
         self.groupoid = groupoid
-        self.input = self.generate_all_inputs(groupoid.size)
-        self.output = [0] * groupoid.size
+        self.input = self.get_input_array(groupoid.size)
+        if random:
+            self.output = self.get_random_output_array(groupoid.size)
+        else:
+            self.output = [0] * pow(groupoid.size, 3)
+        self.element_values = None
 
-    def generate_all_inputs(self, size):
+    def get_input_array(self, size):
         return [list(p) for p in itertools.product(range(size), repeat=size)]
+
+    def get_random_output_array(self, size):
+        return [[choice(range(0, size))] for _ in range(0, pow(size, 3))]
+
+    def imply_element_mapping(self, term, operator="*"):
+        elements = sorted(list(set(term)))
+        elements.remove(operator)
+        possible_values = range(0, self.groupoid.size)
+        if len(possible_values) < len(elements):
+            raise ValueError("The number of term elements is greater than "
+                             "the number of possible values")
+        element_values = {}
+        for idx, element in enumerate(elements):
+            element_values[element] = possible_values[idx]
+        return element_values
+
+    def solve(self, term, operator="*"):
+        if self.element_values is None:
+            element_values = self.imply_element_mapping(term, operator)
+        else:
+            element_values = self.element_values
+        for element, val in element_values.items():
+            term = term.replace(element, str(val))
+
+        term_list = [int(i) if i.isdigit() else i for i in list(term)]
+        result = []
+        for i in term_list:
+            if type(i) is int:
+                result.insert(0, i)
+            else:
+                val1 = result.pop(0)
+                val2 = result.pop(0)
+                result.insert(0, self.groupoid.get_value(val1, val2))
+        return result.pop()
 
 
 class Term():
@@ -122,16 +160,10 @@ if __name__ == '__main__':
     print("------")
     print(grp)
     print("------")
-    grp = Groupoid(4, random=True)
-    print("------")
-    print(grp)
-    print("------")
-    grp = Groupoid(5, random=True)
-    print("------")
-    print(grp)
-    print("------")
-    grp = Groupoid(6, random=True)
-    print("------")
-    print(grp)
-    print("------")
-
+    to = TermOperation(grp, random=True)
+    print(len(to.input))
+    print(to.input)
+    print(len(to.output))
+    print(to.output)
+    solution = to.solve("xy*zz**")
+    print("solution = %s" % solution)
