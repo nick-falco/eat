@@ -1,7 +1,7 @@
 import itertools
 import string
-from random import choice
-from utilities import subset_sums
+from random import choice, uniform
+from utilities import subset_sums, get_term_elements
 
 
 class Groupoid():
@@ -173,7 +173,7 @@ class TermOperation():
         if term_elements:
             self.term_elements = term_elements
         else:
-            self.term_elements = self.get_term_elements()
+            self.term_elements = get_term_elements(self.groupoid.row_size)
 
     def __str__(self):
         value = []
@@ -185,21 +185,6 @@ class TermOperation():
                 " ".join([str(o) for o in self.output[idx]]))
             )
         return "\n".join(value)
-
-    def get_term_elements(self, row_size=None):
-        """
-        Returns a list of term elements matching the row size.
-        Term elments are selected from [a-z].
-
-        :type row_size: int
-        :param row_size: number of possible term elements
-
-        :rtype: list
-        :return: list of term elements
-        """
-        if row_size is None:
-            row_size = self.groupoid.row_size
-        return list(string.ascii_lowercase)[0:row_size]
 
     def get_input_array(self, row_size=None):
         """
@@ -288,19 +273,42 @@ class TermOperation():
         return output
 
 
+class ValidTermGenerator():
+
+    def __init__(self, term_elements):
+        self.term_elements = term_elements
+
+    def gamblers_ruin_algorithm(self, prob=0.20):
+        """
+        Generate a random term using the gamblers ruin algorithm
+
+        :type prop: float
+        :param prob: Probability of growing the size of a random term
+        """
+        substitutions = ["EE*", "I"]
+        term = "E"
+        # randomly build an arbitrarily long term
+        while("E" in term):
+            rand = uniform(0, 1)
+            if rand < prob:
+                index = 0
+            else:
+                index = 1
+            term = term.replace("E", substitutions[index], 1)
+        # randomly replace operands
+        while("I" in term):
+            rand = (0 + (int)(uniform(0, 1)*len(self.term_elements)))
+            term = term.replace("I", self.term_elements[rand], 1)
+        return term
+
+    def generate(self, algorithm="GRA"):
+        if algorithm == "GRA":
+            return self.gamblers_ruin_algorithm()
+        else:
+            raise ValueError("Unkown algorithm {}.")
+
+
 class Term():
-
-    def __init__(self):
-        pass
-
-
-class FemaleTerm(Term):
-
-    def __init__(self):
-        pass
-
-
-class MaleTerm(Term):
 
     def __init__(self):
         pass
@@ -318,3 +326,5 @@ if __name__ == '__main__':
     print("")
     print("solution = %s" % solution)
     print("")
+    vtg = ValidTermGenerator(to.term_elements)
+    print(vtg.generate())
