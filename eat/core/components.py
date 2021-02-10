@@ -1,7 +1,6 @@
 import itertools
-import string
 from random import choice, uniform
-from utilities import subset_sums, get_term_elements
+from core.utilities import subset_sums, get_term_variables
 
 
 class Groupoid():
@@ -154,35 +153,34 @@ class Groupoid():
 
 class TermOperation():
 
-    def __init__(self, groupoid, random=False, term_elements=None):
+    def __init__(self, groupoid, random_target=False, term_variables=None):
         """
         :type groupoid: :class: Groupoid
         :param groupoid: groupoid to apply term operation on
-        :type random: bool
-        :param random: if true randomly fill create a random output
-        :type term_elements: list
-        :param term_elements: list of possible elements in a term
+        :type random_target: bool
+        :param random_target: if true randomly fill the output
+        :type term_variables: list
+        :param term_variables: list of possible variables in a term
         """
         self.groupoid = groupoid
-        self.input = self.get_input_array()
-        if random:
-            self.output = self.get_random_output_array()
+        if term_variables:
+            self.term_variables = term_variables
         else:
-            self.output = [0] * pow(self.groupoid.row_size,
-                                    self.groupoid.row_size)
-        if term_elements:
-            self.term_elements = term_elements
+            self.term_variables = get_term_variables(self.groupoid.row_size)
+        self.input = self.get_input_array(row_size=len(self.term_variables))
+        if random_target:
+            self.solution = self.get_random_target_array()
         else:
-            self.term_elements = get_term_elements(self.groupoid.row_size)
+            self.solution = [0] * pow(self.groupoid.row_size, len(term_variables))
 
     def __str__(self):
         value = []
-        value.append("{} |  ".format(" ".join(self.term_elements)))
-        value.append("-" * (2 * len(self.term_elements) + 4))
+        value.append("{} |  ".format(" ".join(self.term_variables)))
+        value.append("-" * (2 * len(self.term_variables) + 4))
         for idx in range(0, len(self.input)):
             value.append("{} | {}".format(
                 " ".join([str(i) for i in self.input[idx]]),
-                " ".join([str(o) for o in self.output[idx]]))
+                " ".join([str(o) for o in self.solution[idx]]))
             )
         return "\n".join(value)
 
@@ -201,10 +199,11 @@ class TermOperation():
         """
         if row_size is None:
             row_size = self.groupoid.row_size
-        return [list(p) for p in itertools.product(range(row_size),
-                repeat=self.groupoid.row_size)]
+        return [list(p) for p in itertools.product(
+                range(self.groupoid.row_size),
+                repeat=row_size)]
 
-    def get_random_output_array(self):
+    def get_random_target_array(self):
         """
         Returns a random list of outputs to the term operation. Each element
         is a one element list.
@@ -219,27 +218,27 @@ class TermOperation():
         """
         return [[choice(range(0, self.groupoid.row_size))]
                 for _ in range(0, pow(self.groupoid.row_size,
-                                      self.groupoid.row_size))]
+                                      len(self.term_variables)))]
 
-    def get_term_element_mapping(self, input_row, term_elements=None):
+    def get_term_variable_mapping(self, input_row, term_variables=None):
         """
-        Returns a mapping of input values to term elements
+        Returns a mapping of input values to term variables
 
-        e.g. for input_row=[0, 1, 2] and term_elements=[a,b,c]
+        e.g. for input_row=[0, 1, 2] and term_variables=[a,b,c]
              returns {"a": 0, "b": 1, "c": 2}
 
         :type input_row: list
         :param input_row: list of input values
-        :type term_elements: list
-        :param term_elements: list of term elements
+        :type term_variables: list
+        :param term_variables: list of term elements
 
         :rtype: dict
         :return: dictionary mapping term element to input value
         """
-        element_mapping = {}
-        for idx, element in enumerate(self.term_elements):
-            element_mapping[element] = input_row[idx]
-        return element_mapping
+        variable_mapping = {}
+        for idx, var in enumerate(self.term_variables):
+            variable_mapping[var] = input_row[idx]
+        return variable_mapping
 
     def solve(self, term, operator="*"):
         """
@@ -256,9 +255,9 @@ class TermOperation():
         output = []
         for input_row in self.input:
             char_term = term
-            element_values = self.get_term_element_mapping(input_row)
-            for element, val in element_values.items():
-                char_term = char_term.replace(element, str(val))
+            term_variables = self.get_term_variable_mapping(input_row)
+            for var, val in term_variables.items():
+                char_term = char_term.replace(var, str(val))
             term_list = [int(i) if i.isdigit() else i
                          for i in list(char_term)]
             result = []
@@ -275,8 +274,8 @@ class TermOperation():
 
 class ValidTermGenerator():
 
-    def __init__(self, term_elements):
-        self.term_elements = term_elements
+    def __init__(self, term_variables):
+        self.term_variables = term_variables
 
     def gamblers_ruin_algorithm(self, prob=0.20):
         """
@@ -297,8 +296,8 @@ class ValidTermGenerator():
             term = term.replace("E", substitutions[index], 1)
         # randomly replace operands
         while("I" in term):
-            rand = (0 + (int)(uniform(0, 1)*len(self.term_elements)))
-            term = term.replace("I", self.term_elements[rand], 1)
+            rand = (0 + (int)(uniform(0, 1)*len(self.term_variables)))
+            term = term.replace("I", self.term_variables[rand], 1)
         return term
 
     def generate(self, algorithm="GRA"):
@@ -326,5 +325,5 @@ if __name__ == '__main__':
     print("")
     print("solution = %s" % solution)
     print("")
-    vtg = ValidTermGenerator(to.term_elements)
+    vtg = ValidTermGenerator(to.term_variables)
     print(vtg.generate())
