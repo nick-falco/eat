@@ -96,7 +96,7 @@ class DeepDrillingAlgorithm():
                 random_term_sol = to.solve(random_term)
                 # check to see if there was a variable solution to the term
                 if(to.is_solution(random_term_sol, last_row.output)):
-                    print("STEP 1 A")
+                    #print("STEP 1 A")
                     new_row.label = random_term
                     new_row.output = random_term_sol
                     new_row.N = N
@@ -106,7 +106,7 @@ class DeepDrillingAlgorithm():
                     # to the array numbered n has been found
                     pds.pop()
                 else:  # term is not a variable solution
-                    print("STEP 1 B")
+                    #print("STEP 1 B")
                     new_row.N = N
                     new_row.n = m + 1
                     new_row.label = f"L{n}"
@@ -118,30 +118,24 @@ class DeepDrillingAlgorithm():
                 # do this if the label of row N is a term
                 meqln_row = dda.get_m_eq_n(n)
                 if meqln_row.label.startswith("T"):
-                    print("STEP 2 A")
+                    #print("STEP 2 A")
                     # found solution
                     break
                 elif meqln_row.label.startswith("L"):
-                    print("STEP 2 B")
+                    #print("STEP 2 B")
                     # row is labeled Ln
-                    print("ROW M - 1 = %s" % dda.array[meqln_row.N - 1])
-                    print("ROW M = %s" % meqln_row)
-                    print("ROW N = %s" % last_row)
                     new_row.N = N
                     new_row.n = m + 1
                     new_row.label = f"B{n}"
                     r_array = to.r_array(last_row.output,
-                                         dda.array[meqln_row.N - 1].output)
+                                         meqln_row.output)
                     new_row.output = r_array
                     new_row.m = m + 1
                     pds.append(m + 1)  # push m+1 onto stack
                 elif meqln_row.label.startswith("B"):
-                    print("STEP 2 C")
-                    # row is labeled Bk
+                    #print("STEP 2 C")
                     k = self.get_k_from_label(meqln_row.label)
                     firstk, secondk = dda.get_n_eq_k(k)
-                    print(firstk)
-                    print(secondk)
                     new_row.N = N
                     new_row.n = pds.pop()
                     secondk_term = utilities.combine_postfix(secondk.label,
@@ -152,13 +146,9 @@ class DeepDrillingAlgorithm():
 
             # increment number of rows. N = N + 1
             dda.array.append(new_row)
-            N = N + 1
-            if N == 40:
-                break
-            print(new_row)
-            print(pds)                          
+            N = N + 1                     
         print(dda)
         s = dda.array.pop()
         print(s.label)
-        print(to.solve(s.label))
+        print("t(x,y,z) = %s" % to.solve(s.label))
         print("solution = %s" % to.solution)

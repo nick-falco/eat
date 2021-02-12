@@ -336,16 +336,16 @@ class TermOperation():
                 has_var_sol = False
         return has_var_sol, variable_sol
 
-    def is_solution(self, output1, output2):
+    def is_solution(self, input, target):
         count = 0
-        for idx, val_array in enumerate(output1):
+        for idx, val_array in enumerate(input):
             sol = False
             for val in val_array:
-                if val in output2[idx]:
+                if val in target[idx]:
                     sol = True
             if sol:
                 count = count + 1
-        if count == len(self.solution):
+        if count == len(target):
             return True
         else:
             return False
@@ -363,7 +363,6 @@ class TermOperation():
         :return: computed output array for term
         """
         output = []
-        print("term = %s" % term)
         for input_row in self.input:
             char_term = term
             term_variables = self.get_term_variable_mapping(input_row)
