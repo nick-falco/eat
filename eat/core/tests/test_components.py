@@ -39,6 +39,29 @@ class TestTermOperation(unittest.TestCase):
         self.assertTrue(to.is_solution([[0], [1], [0], [2]],
                                        [[0, 1, 2], [0, 1], [0, 1], [0, 2]]))
 
+    def test_solve(self):
+        grp = Groupoid(3)
+        grp.data = grp.list_to_groupoid_data([1, 1, 2,
+                                              0, 2, 0,
+                                              0, 2, 1])
+        to = TermOperation(grp,
+                           standard_target="ternary_descriminator",
+                           term_variables=["x", "y", "z"])
+        sol = to.solve("xxz*xz***zyx*yxzyzxxy*z****zxxzxzz**yyx*xyz***zz****"
+                       "**********zzz*yzz*xy*xyxxyxyxxx*x*zz***xyxzxxz*z*****"
+                       "****zzx*xz*******xzxxyyx*zx*****zxz********zxzxxyy*z*"
+                       "**zzx*x*****yzyyxx****zxyzz*yxyzx*yyxyy****yxzxz***yy"
+                       "yxzxyx***zzxyy*********zzz**x*yxyyz****xy*xyyxyz*yz*y"
+                       "zz*y*********************************zyz*zyx*xzzy****"
+                       "***zyxxyxx*x***zz*zy*zyyzz*yyyyx****xxz**xy*zzy******"
+                       "********yzxyzxxyzyyyzzzzxzyzyxyxzyzzzxzyzzxxyzyxzzyyz"
+                       "y*zyyyy**********************************************"
+                       "***zzx**xyxx*yxzy*****xzyyy*yx****zzy*zzy*yyzy**xxxz*"
+                       "x**yyyzxxxyzyxzzzx*xy***************xzy*zyzyyxx*****z"
+                       "xyzyyy*xy********************************")
+        self.assertEqual(sol, to.solution)
+        self.assertNotEqual(to.solve("xy*z*yz**"), to.solution)
+
 
 if __name__ == "__main__":
     unittest.main()
