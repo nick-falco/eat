@@ -223,7 +223,7 @@ class TermOperation():
         return [[choice(range(0, self.groupoid.row_size))]
                 for _ in range(0, pow(self.groupoid.row_size,
                                       len(self.term_variables)))]
-    
+
     def get_ternary_descriminator_target_array(self):
         """
         Returns target solution of length 27, representing the ternary
@@ -244,7 +244,6 @@ class TermOperation():
             else:
                 target_array.append([a])
         return target_array
-            
 
     def get_term_variable_mapping(self, input_row, term_variables=None):
         """
@@ -297,7 +296,7 @@ class TermOperation():
                         break  # continue to check next row of groupoid
         return l_array
 
-    def r_array(self, term_output, l_array_output):
+    def r_array(self, term_output, sol_output):
         """
         Given a term's output array and a left array returns a new right array,
         where for each value in the term's output array "term_val" the
@@ -309,9 +308,8 @@ class TermOperation():
             for term_val in term_row:
                 for grp_col in range(0, self.groupoid.row_size):
                     if self.groupoid.get_value(term_val, grp_col) in \
-                            l_array_output[row_idx]:
-                        if grp_col not in r_array[row_idx]:
-                            r_array[row_idx].append(grp_col)
+                            sol_output[row_idx]:
+                        r_array[row_idx].append(grp_col)
         return r_array
 
     def solve_variable_solution(self, term_solution, side="left"):
@@ -370,16 +368,17 @@ class TermOperation():
                 char_term = char_term.replace(var, str(val))
             term_list = [int(i) if i.isdigit() else i
                          for i in list(char_term)]
-            result = []
+            pds = []
             for i in term_list:
                 if type(i) is int:
-                    result.append([i])
+                    pds.append(i)
                 else:
-                    val1 = result.pop(0)
-                    val2 = result.pop(0)
-                    result.append([self.groupoid.get_value(val1[0],
-                                                           val2[0])])
-            output.append(result.pop())
+                    val2 = pds.pop()
+                    val1 = pds.pop()
+                    pds.append(self.groupoid.get_value(val1,
+                                                       val2))
+            out = pds.pop()
+            output.append([out])
         return output
 
 

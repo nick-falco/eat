@@ -1,6 +1,6 @@
 from eat.core import utilities
 from eat.core.components import Groupoid, TermOperation, ValidTermGenerator
-import time
+import logging
 
 
 class DDA_Row():
@@ -14,7 +14,7 @@ class DDA_Row():
 
     def __str__(self):
         return ("%s\t%s\t%10s\t%60s...\t%5s" % (self.N, self.n, self.label,
-                                                self.output[:3], self.m))
+                                                self.output[:5], self.m))
 
 
 class DDA_Array():
@@ -31,7 +31,7 @@ class DDA_Array():
         return "\n".join(s)
 
     def get_m_eq_n(self, n):
-        for idx, row in enumerate(self.array):
+        for row in self.array:
             if n == row.m:
                 return row
 
@@ -51,6 +51,9 @@ class DDA_Array():
 
 
 class DeepDrillingAlgorithm():
+
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
 
     def get_k_from_label(self, rowlabel):
         # Get label K from row M labeled Bk or Lk
@@ -96,7 +99,7 @@ class DeepDrillingAlgorithm():
                 random_term_sol = to.solve(random_term)
                 # check to see if there was a variable solution to the term
                 if(to.is_solution(random_term_sol, last_row.output)):
-                    #print("STEP 1 A")
+                    self.logger.debug("STEP 1 A")
                     new_row.label = random_term
                     new_row.output = random_term_sol
                     new_row.N = N
@@ -106,10 +109,10 @@ class DeepDrillingAlgorithm():
                     # to the array numbered n has been found
                     pds.pop()
                 else:  # term is not a variable solution
-                    #print("STEP 1 B")
+                    self.logger.debug("STEP 1 B")
                     new_row.N = N
                     new_row.n = m + 1
-                    new_row.label = f"L{n}"
+                    new_row.label = f"L{m+1}"
                     l_array = to.l_array(last_row.output)
                     new_row.output = l_array
                     new_row.m = m + 1
@@ -118,36 +121,34 @@ class DeepDrillingAlgorithm():
                 # do this if the label of row N is a term
                 meqln_row = dda.get_m_eq_n(n)
                 if meqln_row.label.startswith("T"):
-                    #print("STEP 2 A")
+                    self.logger.debug("STEP 2 A")
                     # found solution
                     break
-                elif meqln_row.label.startswith("L"):
-                    #print("STEP 2 B")
-                    # row is labeled Ln
+                elif meqln_row.label.startswith("L"):  # row is labeled Ln
+                    self.logger.debug("STEP 2 B")
+                    A = dda.get_m_eq_n(n-1)
                     new_row.N = N
                     new_row.n = m + 1
                     new_row.label = f"B{n}"
                     r_array = to.r_array(last_row.output,
-                                         meqln_row.output)
+                                         A.output)
                     new_row.output = r_array
                     new_row.m = m + 1
                     pds.append(m + 1)  # push m+1 onto stack
                 elif meqln_row.label.startswith("B"):
-                    #print("STEP 2 C")
+                    self.logger.debug("STEP 2 C")
                     k = self.get_k_from_label(meqln_row.label)
-                    firstk, secondk = dda.get_n_eq_k(k)
+                    first, second = dda.get_n_eq_k(k)
                     new_row.N = N
                     new_row.n = pds.pop()
-                    secondk_term = utilities.combine_postfix(secondk.label,
-                                                             last_row.label)
-                    new_row.label = secondk_term
-                    new_row.output = to.solve(secondk_term)
+                    combined_term = utilities.combine_postfix(second.label,
+                                                              last_row.label)
+                    new_row.label = combined_term
+                    new_row.output = to.solve(combined_term)
                     new_row.m = m
-
-            # increment number of rows. N = N + 1
             dda.array.append(new_row)
-            N = N + 1                     
-        print(dda)
+            N = N + 1
+        #print(dda)
         s = dda.array.pop()
         print(s.label)
         print("t(x,y,z) = %s" % to.solve(s.label))
