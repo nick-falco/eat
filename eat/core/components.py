@@ -1,6 +1,6 @@
 import itertools
 from random import choice, uniform
-from core.utilities import subset_sums, get_term_variables
+from eat.core.utilities import subset_sums, get_term_variables
 
 
 class Groupoid():
@@ -153,12 +153,13 @@ class Groupoid():
 
 class TermOperation():
 
-    def __init__(self, groupoid, random_target=False, term_variables=None):
+    def __init__(self, groupoid, standard_target="ternary_descriminator",
+                 term_variables=None):
         """
         :type groupoid: :class: Groupoid
         :param groupoid: groupoid to apply term operation on
-        :type random_target: bool
-        :param random_target: if true randomly fill the output
+        :type standard_target: string
+        :param standard_target: choose ternary_descriminator or random
         :type term_variables: list
         :param term_variables: list of possible variables in a term
         """
@@ -168,10 +169,13 @@ class TermOperation():
         else:
             self.term_variables = get_term_variables(self.groupoid.row_size)
         self.input = self.get_input_array(row_size=len(self.term_variables))
-        if random_target:
+        if standard_target == "random":
             self.solution = self.get_random_target_array()
+        elif standard_target == "ternary_descriminator":
+            self.solution = self.get_ternary_descriminator_target_array()
         else:
-            self.solution = [0] * pow(self.groupoid.row_size, len(term_variables))
+            self.solution = [0] * pow(self.groupoid.row_size,
+                                      len(term_variables))
 
     def __str__(self):
         value = []
@@ -219,6 +223,28 @@ class TermOperation():
         return [[choice(range(0, self.groupoid.row_size))]
                 for _ in range(0, pow(self.groupoid.row_size,
                                       len(self.term_variables)))]
+    
+    def get_ternary_descriminator_target_array(self):
+        """
+        Returns target solution of length 27, representing the ternary
+        descriminator:
+
+        d(a, b, c) := {c if a == b; a if a != b}
+        """
+        if len(self.term_variables) > 3:
+            raise ValueError("Ternary descriminator output only applies to "
+                             "term operations with 3 term variables")
+        target_array = []
+        for row in self.input:
+            a = row[0]
+            b = row[1]
+            c = row[2]
+            if a == b:
+                target_array.append([c])
+            else:
+                target_array.append([a])
+        return target_array
+            
 
     def get_term_variable_mapping(self, input_row, term_variables=None):
         """
@@ -240,6 +266,90 @@ class TermOperation():
             variable_mapping[var] = input_row[idx]
         return variable_mapping
 
+    def l_array(self, term_output):
+        """
+        Returns an array containing the rows indexes of the groupoid that
+        contain a value matching the target output at a given index.
+
+        LA(x, y, z) = {d E G | d * g E A(x, y, z) forsome g E G}:
+
+        e.g.
+
+         * 0 1 2 
+         0 2 1 2
+         1 1 0 0
+         2 0 0 1
+
+         l_array([[0], [1], [0], [2]])
+         >>> [[1, 2], [0, 1, 2], [1, 2], [0]]
+
+         Because
+         [0] is found at gropuoid rows [1] and [2]
+         [1] is found at groupoid rows [0], [1] and [2]
+         [2] is found at groupoid rows [0]
+        """
+        l_array = [[] for _ in range(0, len(term_output))]
+        for row_idx, term_row in enumerate(term_output):
+            for grp_row in range(0, self.groupoid.row_size):
+                for grp_col in range(0, self.groupoid.row_size):
+                    if self.groupoid.get_value(grp_row, grp_col) in term_row:
+                        l_array[row_idx].append(grp_row)
+                        break  # continue to check next row of groupoid
+        return l_array
+
+    def r_array(self, term_output, l_array_output):
+        """
+        Given a term's output array and a left array returns a new right array,
+        where for each value in the term's output array "term_val" the
+        right array contains the groupoid column value at the groupoid row
+        equal to "term_val".
+        """
+        r_array = [[] for _ in range(0, len(term_output))]
+        for row_idx, term_row in enumerate(term_output):
+            for term_val in term_row:
+                for grp_col in range(0, self.groupoid.row_size):
+                    if self.groupoid.get_value(term_val, grp_col) in \
+                            l_array_output[row_idx]:
+                        if grp_col not in r_array[row_idx]:
+                            r_array[row_idx].append(grp_col)
+        return r_array
+
+    def solve_variable_solution(self, term_solution, side="left"):
+        has_var_sol = True
+        variable_sol = [[] for _ in range(0, len(term_solution))]
+        for idx, term_sol_arr in enumerate(term_solution):
+            for term_sol_val in term_sol_arr:
+                for input_val in range(0, self.groupoid.row_size):
+                    if side == "left":
+                        if self.groupoid.get_value(input_val,
+                                                   term_sol_val) in \
+                                self.solution[idx]:
+                            if input_val not in variable_sol[idx]:
+                                variable_sol[idx].append(input_val)
+                    elif side == "right":
+                        if self.groupoid.get_value(term_sol_val,
+                                                   input_val) in \
+                                self.solution[idx]:
+                            if input_val not in variable_sol[idx]:
+                                variable_sol[idx].append(input_val)
+            if len(variable_sol[idx]) == 0:
+                has_var_sol = False
+        return has_var_sol, variable_sol
+
+    def is_solution(self, output1, output2):
+        count = 0
+        for idx, val_array in enumerate(output1):
+            sol = False
+            for val in val_array:
+                if val in output2[idx]:
+                    sol = True
+            if sol:
+                count = count + 1
+        if count == len(self.solution):
+            return True
+        else:
+            return False
+
     def solve(self, term, operator="*"):
         """
         Computes output array for the given term
@@ -253,6 +363,7 @@ class TermOperation():
         :return: computed output array for term
         """
         output = []
+        print("term = %s" % term)
         for input_row in self.input:
             char_term = term
             term_variables = self.get_term_variable_mapping(input_row)
@@ -263,11 +374,12 @@ class TermOperation():
             result = []
             for i in term_list:
                 if type(i) is int:
-                    result.insert(0, i)
+                    result.append([i])
                 else:
                     val1 = result.pop(0)
                     val2 = result.pop(0)
-                    result.insert(0, self.groupoid.get_value(val1, val2))
+                    result.append([self.groupoid.get_value(val1[0],
+                                                           val2[0])])
             output.append(result.pop())
         return output
 
@@ -277,7 +389,7 @@ class ValidTermGenerator():
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
-    def gamblers_ruin_algorithm(self, prob=0.20):
+    def gamblers_ruin_algorithm(self, prob=0.25):
         """
         Generate a random term using the gamblers ruin algorithm
 
@@ -315,15 +427,20 @@ class Term():
 
 if __name__ == '__main__':
 
-    grp = Groupoid(3, random=True)
+    grp = Groupoid(3)
+    grp.data = grp.list_to_groupoid_data([2, 1, 2,
+                                          1, 0, 0,
+                                          0, 0, 1])
     print("")
     print(grp)
     print("")
-    to = TermOperation(grp, random=True)
+    to = TermOperation(grp, random_target=True)
     print(to)
-    solution = to.solve("ab*cc**")
+    term = "ab*ca**"
+    solution = to.solve(term)
     print("")
     print("solution = %s" % solution)
     print("")
     vtg = ValidTermGenerator(to.term_variables)
     print(vtg.generate())
+    print("")
