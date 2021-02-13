@@ -5,19 +5,17 @@ from eat.core.components import TermOperation, Groupoid
 class TestTermOperation(unittest.TestCase):
 
     def test_l_array(self):
-        grp = Groupoid(3)
-        grp.data = grp.list_to_groupoid_data([2, 1, 2,
-                                              1, 0, 0,
-                                              0, 0, 1])
+        grp = Groupoid(data=[2, 1, 2,
+                             1, 0, 0,
+                             0, 0, 1])
         to = TermOperation(grp)
         l_array = to.l_array([[0], [1], [0], [2]])
         self.assertEqual(l_array, [[1, 2], [0, 1, 2], [1, 2], [0]])
 
     def test_r_array(self):
-        grp = Groupoid(3)
-        grp.data = grp.list_to_groupoid_data([2, 1, 2,
-                                              1, 0, 0,
-                                              0, 0, 1])
+        grp = Groupoid(data=[2, 1, 2,
+                             1, 0, 0,
+                             0, 0, 1])
         to = TermOperation(grp)
         r_array = to.r_array([[0], [1], [0], [2]],
                              [[0, 1], [0], [0, 1, 2], [0, 2]])
@@ -32,7 +30,7 @@ class TestTermOperation(unittest.TestCase):
         self.assertEqual(r_array, [[0, 1, 2], [0], [1], [0, 1]])
 
     def test_is_solution(self):
-        grp = Groupoid(3)
+        grp = Groupoid()
         to = TermOperation(grp)
         self.assertTrue(to.is_solution([[0], [1], [0], [2]],
                                        [[0], [1], [0], [2]]))
@@ -40,13 +38,12 @@ class TestTermOperation(unittest.TestCase):
                                        [[0, 1, 2], [0, 1], [0, 1], [0, 2]]))
 
     def test_solve(self):
-        grp = Groupoid(3)
-        grp.data = grp.list_to_groupoid_data([1, 1, 2,
-                                              0, 2, 0,
-                                              0, 2, 1])
+        grp = Groupoid(data=[1, 1, 2,
+                             0, 2, 0,
+                             0, 2, 1])
         to = TermOperation(grp,
-                           standard_target="ternary_descriminator",
                            term_variables=["x", "y", "z"])
+        to.target = to.get_ternary_descriminator_target_array()
         sol = to.solve("xxz*xz***zyx*yxzyzxxy*z****zxxzxzz**yyx*xyz***zz****"
                        "**********zzz*yzz*xy*xyxxyxyxxx*x*zz***xyxzxxz*z*****"
                        "****zzx*xz*******xzxxyyx*zx*****zxz********zxzxxyy*z*"
@@ -59,8 +56,8 @@ class TestTermOperation(unittest.TestCase):
                        "***zzx**xyxx*yxzy*****xzyyy*yx****zzy*zzy*yyzy**xxxz*"
                        "x**yyyzxxxyzyxzzzx*xy***************xzy*zyzyyxx*****z"
                        "xyzyyy*xy********************************")
-        self.assertEqual(sol, to.solution)
-        self.assertNotEqual(to.solve("xy*z*yz**"), to.solution)
+        self.assertEqual(sol, to.target)
+        self.assertNotEqual(to.solve("xy*z*yz**"), to.target)
 
 
 if __name__ == "__main__":

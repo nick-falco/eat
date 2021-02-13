@@ -21,6 +21,8 @@ class Groupoid():
             self.data = self.list_to_groupoid_data(data)
         else:
             self.data = self.get_random_primal_groupoid_data(size=3)
+            self.size = self.get_groupoid_size(
+                self.groupoid_data_to_list(self.data))
 
     def __str__(self):
         return "\n".join([" ".join(
