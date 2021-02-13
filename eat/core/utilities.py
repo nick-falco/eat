@@ -23,4 +23,4 @@ def get_term_variables(size):
 
 
 def combine_postfix(term1, term2):
-    return f"{term1}{term2}*"
+    return "{}{}*".format(term1, term2)
