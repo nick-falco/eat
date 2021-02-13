@@ -39,7 +39,7 @@ def parse_argments():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+def main():
     args = parse_argments()
     # create groupoid table
     grp = Groupoid(args.groupoid)
@@ -65,3 +65,6 @@ if __name__ == '__main__':
     dda = DeepDrillingAlgorithm(grp, to)
     dda.run(male_term_generation_method=mtgm, verbose=verbose)
 
+
+if __name__ == '__main__':
+    main()
