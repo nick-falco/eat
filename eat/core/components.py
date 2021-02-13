@@ -1,26 +1,26 @@
 import itertools
+import math
 from random import choice, uniform
 from eat.core.utilities import subset_sums, get_term_variables
 
 
 class Groupoid():
 
-    def __init__(self, row_size, fill=None, random=False):
+    def __init__(self, data=None):
         """
-        :type row_size: int
-        :param row_size: number of groupoid cells per row
+        Construtor for a groupoid. If data is not supplied, a randomly
+        filled 3 element groupoid is created.
+
+        :type size: int
+        :param size: number of groupoid cells per row
         :type fill: int
         :param fill: default fill value for all cells of groupoid
-        :type random: bool
-        :param random: if true randomly fill the groupoid and ignore fill value
         """
-        if row_size < 3:
-            raise ValueError("Groupoid must contain 3 or more elments.")
-        self.row_size = row_size
-        if random:
-            self.data = self.get_random_primal_groupoid_data()
+        if data:
+            self.size = self.get_groupoid_size(data)
+            self.data = self.list_to_groupoid_data(data)
         else:
-            self.data = self.list_to_groupoid_data([fill] * pow(row_size, 2))
+            self.data = self.get_random_primal_groupoid_data(size=3)
 
     def __str__(self):
         return "\n".join([" ".join(
@@ -54,6 +54,12 @@ class Groupoid():
         """
         return self.data[x][y]
 
+    def get_groupoid_size(self, data):
+        size = int(math.sqrt(len(data)))
+        if int(size + 0.5) ** 2 != len(data):
+            raise ValueError("Groupoid data must be a perfect square.")
+        return size
+
     def groupoid_data_to_list(self, groupoid_data):
         """
         Converts groupoid data to a flat list
@@ -68,7 +74,7 @@ class Groupoid():
         """
         return [cell for row in groupoid_data for cell in row]
 
-    def list_to_groupoid_data(self, groupoid_values, row_size=None):
+    def list_to_groupoid_data(self, groupoid_values, size=None):
         """
         Converts flat list to groupoid data
 
@@ -76,44 +82,44 @@ class Groupoid():
 
         :type groupoid_values: list
         :param groupoid_values: flat list of groupoid values
-        :type row_size: int
-        :param row_size: number of groupoid cells per row
+        :type size: int
+        :param size: number of groupoid cells per row
 
         :rtype: list
         :return: groupoid data as a list of lists
         """
-        if row_size is None:
-            row_size = self.row_size
-        return [groupoid_values[i:i+row_size]
-                for i in range(0, len(groupoid_values), row_size)]
+        if size is None:
+            size = self.size
+        return [groupoid_values[i:i+size]
+                for i in range(0, len(groupoid_values), size)]
 
-    def get_random_primal_groupoid_data(self, row_size=None):
+    def get_random_primal_groupoid_data(self, size=None):
         """
         Generate randomly filled primal groupoid data
 
-        :type row_size: int
-        :param row_size: number of groupoid cells per row
+        :type size: int
+        :param size: number of groupoid cells per row
 
         :rtype: list
         :return: groupoid data as a list of lists
         """
-        if row_size is None:
-            row_size = self.row_size
+        if size is None:
+            size = self.size
 
-        groupoid_cell_count = pow(row_size, 2)
+        groupoid_cell_count = pow(size, 2)
         groupoid_values = [None] * groupoid_cell_count
 
         # find subset sum resulting in the total number of groupoid cells
         subset_sum = choice(subset_sums(range(1, groupoid_cell_count-1),
                                         groupoid_cell_count,
-                                        row_size))
+                                        size))
 
         assigned_indexes = []  # keep track of assigned indexes
         assigned_inputs = []  # keep track of assigned input values
         index_by_input = {}  # keep track of indexes for a given input
         for num_inputs in subset_sum:
             # choose a random input value
-            possible_inputs = [i for i in range(0, row_size)
+            possible_inputs = [i for i in range(0, size)
                                if i not in assigned_inputs]
             input_value = choice(possible_inputs)
             assigned_inputs.append(input_value)
@@ -132,12 +138,12 @@ class Groupoid():
         # swap diagional values if they match inputs
         curr_diag_idx = 0
         input_value = 0
-        step = row_size
+        step = size
         while curr_diag_idx < len(groupoid_values):
             curr_diagonal = groupoid_values[curr_diag_idx]
             if curr_diagonal == input_value:
                 # swap diagonal with another value
-                if input_value < row_size-1:
+                if input_value < size-1:
                     # swap with larger input value
                     swap_index = index_by_input[input_value+1][0]
                 else:
@@ -148,34 +154,34 @@ class Groupoid():
                     groupoid_values[swap_index], groupoid_values[curr_diag_idx]
             input_value += 1
             curr_diag_idx += step + 1
-        return self.list_to_groupoid_data(groupoid_values, row_size)
+        return self.list_to_groupoid_data(groupoid_values, size)
 
 
 class TermOperation():
 
-    def __init__(self, groupoid, standard_target="ternary_descriminator",
+    def __init__(self, groupoid, target=None,
                  term_variables=None):
         """
         :type groupoid: :class: Groupoid
         :param groupoid: groupoid to apply term operation on
-        :type standard_target: string
-        :param standard_target: choose ternary_descriminator or random
+        :type target: list
+        :param target: the target array to find a term solution for. If a
+          target is not specified, a random target will be used.
         :type term_variables: list
-        :param term_variables: list of possible variables in a term
+        :param term_variables: list of possible variables in a term. If
+          term variables are not specified, they will be created to match
+          the size of the groupoid.
         """
         self.groupoid = groupoid
         if term_variables:
             self.term_variables = term_variables
         else:
-            self.term_variables = get_term_variables(self.groupoid.row_size)
-        self.input = self.get_input_array(row_size=len(self.term_variables))
-        if standard_target == "random":
-            self.solution = self.get_random_target_array()
-        elif standard_target == "ternary_descriminator":
-            self.solution = self.get_ternary_descriminator_target_array()
+            self.term_variables = get_term_variables(self.groupoid.size)
+        self.input = self.get_input_array(size=len(self.term_variables))
+        if target:
+            self.target = target
         else:
-            self.solution = [0] * pow(self.groupoid.row_size,
-                                      len(term_variables))
+            self.target = self.get_random_target_array()
 
     def __str__(self):
         value = []
@@ -184,44 +190,44 @@ class TermOperation():
         for idx in range(0, len(self.input)):
             value.append("{} | {}".format(
                 " ".join([str(i) for i in self.input[idx]]),
-                " ".join([str(o) for o in self.solution[idx]]))
+                " ".join([str(o) for o in self.target[idx]]))
             )
         return "\n".join(value)
 
-    def get_input_array(self, row_size=None):
+    def get_input_array(self, size=None):
         """
         Returns a list of inputs to the term operation. Each input is a list
-        of input values for each term element.
+        of input values for each term variable.
 
         e.g. [[0,0,0], [0,0,1], [0,0,2], [0,1,0], [0,1,1] ... etc.]
 
-        :type row_size: int
-        :param row_size: number of possible term elements
+        :type size: int
+        :param size: number of possible term elements
 
         :rtype: list
         :return: list of term operation inputs
         """
-        if row_size is None:
-            row_size = self.groupoid.row_size
+        if size is None:
+            size = self.groupoid.size
         return [list(p) for p in itertools.product(
-                range(self.groupoid.row_size),
-                repeat=row_size)]
+                range(self.groupoid.size),
+                repeat=size)]
 
     def get_random_target_array(self):
         """
-        Returns a random list of outputs to the term operation. Each element
-        is a one element list.
+        Returns a random list of outputs to the term operation. Each list
+        element is a one element list.
 
         e.g. [[0], [2], [1], [0], [1] ... etc.]
 
-        :type row_size: int
-        :param row_size: number of possible term elements
+        :type size: int
+        :param size: number of possible term elements
 
         :rtype: list
         :return: list of random term operation outputs
         """
-        return [[choice(range(0, self.groupoid.row_size))]
-                for _ in range(0, pow(self.groupoid.row_size,
+        return [[choice(range(0, self.groupoid.size))]
+                for _ in range(0, pow(self.groupoid.size,
                                       len(self.term_variables)))]
 
     def get_ternary_descriminator_target_array(self):
@@ -258,7 +264,7 @@ class TermOperation():
         :param term_variables: list of term elements
 
         :rtype: dict
-        :return: dictionary mapping term element to input value
+        :return: dictionary mapping term variable to input value
         """
         variable_mapping = {}
         for idx, var in enumerate(self.term_variables):
@@ -289,8 +295,8 @@ class TermOperation():
         """
         l_array = [[] for _ in range(0, len(term_output))]
         for row_idx, term_row in enumerate(term_output):
-            for grp_row in range(0, self.groupoid.row_size):
-                for grp_col in range(0, self.groupoid.row_size):
+            for grp_row in range(0, self.groupoid.size):
+                for grp_col in range(0, self.groupoid.size):
                     if self.groupoid.get_value(grp_row, grp_col) in term_row:
                         l_array[row_idx].append(grp_row)
                         break  # continue to check next row of groupoid
@@ -306,7 +312,7 @@ class TermOperation():
         r_array = [[] for _ in range(0, len(term_output))]
         for row_idx, term_row in enumerate(term_output):
             for term_val in term_row:
-                for grp_col in range(0, self.groupoid.row_size):
+                for grp_col in range(0, self.groupoid.size):
                     if self.groupoid.get_value(term_val, grp_col) in \
                             sol_output[row_idx]:
                         r_array[row_idx].append(grp_col)
@@ -317,33 +323,41 @@ class TermOperation():
         variable_sol = [[] for _ in range(0, len(term_solution))]
         for idx, term_sol_arr in enumerate(term_solution):
             for term_sol_val in term_sol_arr:
-                for input_val in range(0, self.groupoid.row_size):
+                for input_val in range(0, self.groupoid.size):
                     if side == "left":
                         if self.groupoid.get_value(input_val,
                                                    term_sol_val) in \
-                                self.solution[idx]:
+                                self.target[idx]:
                             if input_val not in variable_sol[idx]:
                                 variable_sol[idx].append(input_val)
                     elif side == "right":
                         if self.groupoid.get_value(term_sol_val,
                                                    input_val) in \
-                                self.solution[idx]:
+                                self.target[idx]:
                             if input_val not in variable_sol[idx]:
                                 variable_sol[idx].append(input_val)
             if len(variable_sol[idx]) == 0:
                 has_var_sol = False
         return has_var_sol, variable_sol
 
-    def is_solution(self, input, target):
+    def is_solution(self, input_array, target_array):
+        """
+        Checks if input_array is a solution to the target_array.
+
+        :type input_array: list
+        :param input_array: array to check against target array
+        :type target_array: list
+        :param target_array: target solution array
+        """
         count = 0
-        for idx, val_array in enumerate(input):
+        for idx, val_array in enumerate(input_array):
             sol = False
             for val in val_array:
-                if val in target[idx]:
+                if val in target_array[idx]:
                     sol = True
             if sol:
                 count = count + 1
-        if count == len(target):
+        if count == len(target_array):
             return True
         else:
             return False
