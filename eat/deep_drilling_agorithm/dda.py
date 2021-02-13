@@ -1,37 +1,39 @@
 from eat.core import utilities
-from eat.core.components import Groupoid, TermOperation, ValidTermGenerator
+from eat.core.components import ValidTermGenerator
+from random import choice
 import logging
+import time
 
 
 class DDA_Row():
 
-    def __init__(self, N=None, n=None, label=None, output=None, m=None):
+    def __init__(self, N=None, n=None, label=None, array=None, m=None):
         self.N = N  # keep track of number of rows in array
         self.n = n
         self.label = label  # label for type of row T, B, L, or Term
-        self.output = output  # term output data
+        self.array = array
         self.m = m  # keep track of highest value n introduced so far
 
     def __str__(self):
         return ("%s\t%s\t%10s\t%60s...\t%5s" % (self.N, self.n, self.label,
-                                                self.output[:5], self.m))
+                                                self.array[:3], self.m))
 
 
-class DDA_Array():
+class DDA_Table():
 
     def __init__(self):
-        self.array = []
+        self.table = []
     
     def __str__(self):
         s = []
         s.append("%s\t%s\t%10s\t%60s\t%5s" % ("N", "n", "Label", "Array", "m"))
         s.append("-" * (len(s[0]) + 30))
-        for row in self.array:
+        for row in self.table:
             s.append(str(row))
         return "\n".join(s)
 
     def get_m_eq_n(self, n):
-        for row in self.array:
+        for row in self.table:
             if n == row.m:
                 return row
 
@@ -39,7 +41,7 @@ class DDA_Array():
         # find row numbered k that has some term u(x,y,z) as its label
         count = 1
         first_n_eq_k = None
-        for idx, row in enumerate(self.array):
+        for idx, row in enumerate(self.table):
             if row.n == k:
                 if count == 1:
                     first_n_eq_k = row
@@ -52,7 +54,10 @@ class DDA_Array():
 
 class DeepDrillingAlgorithm():
 
-    def __init__(self):
+    def __init__(self, groupoid, term_operation):
+        self.grp = groupoid
+        self.to = term_operation
+        self.vtg = ValidTermGenerator(self.to.term_variables)
         self.logger = logging.getLogger(__name__)
 
     def get_k_from_label(self, rowlabel):
@@ -61,47 +66,44 @@ class DeepDrillingAlgorithm():
         k = int(parts[-1])
         return k
 
-    def run(self):
+    def get_male_term(self, generation_method="random"):
+        if generation_method == "random":
+            return self.vtg.generate()
+        elif generation_method == "random-12-terms":
+            test_terms = ["x", "y", "z", "xx*", "xy*", "xz*", "yx*", "yy*",
+                          "yz*", "zx*", "zy*", "zz*"]
+            return choice(test_terms)
+            
+    def run(self, male_term_generation_method="random", verbose=False):
         pds = []  # push down stack containing number of terms
         pds.append(1)
 
-        # create groupoid table
-        grp = Groupoid(3)
-        grp.data = grp.list_to_groupoid_data([1, 1, 2,
-                                              0, 2, 0,
-                                              0, 2, 1])
-
-        # setup term operation
-        to = TermOperation(grp,
-                           standard_target="ternary_descriminator",
-                           term_variables=["x", "y", "z"])
-        # initilize a valid term generator
-        vtg = ValidTermGenerator(to.term_variables)
-
-        # initialize DDA array
-        dda = DDA_Array()
-        dda.array.append(DDA_Row(0, 1, "T", to.solution, 1))
+        # initialize DDA table
+        dda = DDA_Table()
+        dda.table.append(DDA_Row(0, 1, "T", self.to.target, 1))
 
         # algorithm variables
         N = 1  # we start at the second row
         m = 1  # keep track of highest value n introduced so far
         n = 1  # get the initial value of n
 
+        start = time.time()
         while(True):
             new_row = DDA_Row()
-            last_row = dda.array[-1]
+            last_row = dda.table[-1]
             n = last_row.n
             m = last_row.m
             label = last_row.label
             # check to see if rowtype is the first term, left array, or B array
             if label == "T" or label.startswith("B") or label.startswith("L"):
-                random_term = vtg.generate()
-                random_term_sol = to.solve(random_term)
+                male_term = self.get_male_term(
+                    generation_method=male_term_generation_method)
+                male_term_sol = self.to.solve(male_term)
                 # check to see if there was a variable solution to the term
-                if(to.is_solution(random_term_sol, last_row.output)):
+                if(self.to.is_solution(male_term_sol, last_row.array)):
                     self.logger.debug("STEP 1 A")
-                    new_row.label = random_term
-                    new_row.output = random_term_sol
+                    new_row.label = male_term
+                    new_row.array = male_term_sol
                     new_row.N = N
                     new_row.n = n
                     new_row.m = m
@@ -112,9 +114,9 @@ class DeepDrillingAlgorithm():
                     self.logger.debug("STEP 1 B")
                     new_row.N = N
                     new_row.n = m + 1
-                    new_row.label = f"L{m+1}"
-                    l_array = to.l_array(last_row.output)
-                    new_row.output = l_array
+                    new_row.label = "L{}".format(m+1)
+                    l_array = self.to.l_array(last_row.array)
+                    new_row.array = l_array
                     new_row.m = m + 1
                     pds.append(m + 1)  # push m+1 onto stack
             else:
@@ -129,10 +131,10 @@ class DeepDrillingAlgorithm():
                     A = dda.get_m_eq_n(n-1)
                     new_row.N = N
                     new_row.n = m + 1
-                    new_row.label = f"B{n}"
-                    r_array = to.r_array(last_row.output,
-                                         A.output)
-                    new_row.output = r_array
+                    new_row.label = "B{}".format(n)
+                    r_array = self.to.r_array(last_row.array,
+                                              A.array)
+                    new_row.array = r_array
                     new_row.m = m + 1
                     pds.append(m + 1)  # push m+1 onto stack
                 elif meqln_row.label.startswith("B"):
@@ -144,12 +146,25 @@ class DeepDrillingAlgorithm():
                     combined_term = utilities.combine_postfix(second.label,
                                                               last_row.label)
                     new_row.label = combined_term
-                    new_row.output = to.solve(combined_term)
+                    new_row.array = self.to.solve(combined_term)
                     new_row.m = m
-            dda.array.append(new_row)
+            dda.table.append(new_row)
             N = N + 1
-        #print(dda)
-        s = dda.array.pop()
-        print(s.label)
-        print("t(x,y,z) = %s" % to.solve(s.label))
-        print("solution = %s" % to.solution)
+        s = dda.table.pop()
+        end = time.time()
+
+        if (verbose):
+            print(dda)
+            print("")
+            print("Summary:")
+            print("--------")
+            print("Groupoid used:")
+            print(self.grp)
+            print("Computed term:")
+            print(s.label)
+            print("Term length  = {}".format(len(s.label)))
+            print("Search time  = {} sec".format(end - start))
+            print("Term array   = {}".format(self.to.solve(s.label)))
+            print("Target array = {}".format(self.to.target))
+        else:
+            print(s.label)
