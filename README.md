@@ -59,6 +59,17 @@ eat -a DDA --groupoid 1 1 2 0 2 0 0 2 1 --target 0 2 2 2 0 2 1 2 2 2 0 2 1 2 0 2
 eat -a DDA --groupoid 1 1 2 0 2 0 0 2 1 --target-random
 ```
 
+inlcude a summary print out:
+
+```
+eat -a DDA --groupoid 1 1 2 0 2 0 0 2 1 --target-random --print-summary
+```
+
+include a verbose table print out :
+
+```
+eat -a DDA --groupoid 1 1 2 0 2 0 0 2 1 --target-random --verbose
+```
 
 <b>3.)</b> Run DDA using the same groupoid as in example 1, but with a ternary descriminator target:
 

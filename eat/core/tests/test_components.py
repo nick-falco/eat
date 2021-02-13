@@ -1,5 +1,5 @@
 import unittest
-from eat.core.components import TermOperation, Groupoid
+from eat.core.components import TermOperation, Groupoid, ValidTermGenerator
 
 
 class TestTermOperation(unittest.TestCase):
@@ -58,6 +58,20 @@ class TestTermOperation(unittest.TestCase):
                        "xyzyyy*xy********************************")
         self.assertEqual(sol, to.target)
         self.assertNotEqual(to.solve("xy*z*yz**"), to.target)
+
+
+class TestValidTermGenerator(unittest.TestCase):
+
+    def test_random_12_terms(self):
+        vtg = ValidTermGenerator(["x", "y", "z"])
+        rand_term = vtg.random_12_terms()
+        self.assertIn(rand_term,
+                      ['x', 'y', 'z', 'xx*', 'xy*', 'xz*', 'yx*', 'yy*',
+                       'yz*', 'zx*', 'zy*', 'zz*'])
+
+        vtg = ValidTermGenerator(["x", "y", "z", "a"])
+        with self.assertRaises(RuntimeError):
+            vtg.random_12_terms()
 
 
 if __name__ == "__main__":
