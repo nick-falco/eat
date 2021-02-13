@@ -426,9 +426,31 @@ class ValidTermGenerator():
             term = term.replace("I", self.term_variables[rand], 1)
         return term
 
-    def generate(self, algorithm="GRA"):
+    def random_12_terms(self):
+        """
+        Select a term randomly from the set of 12 one and two variable terms
+        """
+        if (len(self.term_variables) != 3):
+            raise RuntimeError("The 'random_12_terms' term generation method "
+                               "only applies to 3 variable term operations.")
+        combinations = []
+        for i in range(len(self.term_variables)+1):
+            for combination in \
+                    itertools.product(self.term_variables, repeat=i):
+                combination = "".join(combination)
+                if len(combination) == 1:
+                    combinations.append(combination)
+                elif len(combination) == 2:
+                    combinations.append("{}*".format(combination))
+        return choice(combinations)
+
+    def generate(self, algorithm="GRA", kwargs=None):
+        if kwargs is None:
+            kwargs = {}
         if algorithm == "GRA":
-            return self.gamblers_ruin_algorithm()
+            return self.gamblers_ruin_algorithm(**kwargs)
+        elif algorithm == "random-12-terms":
+            return self.random_12_terms(**kwargs)
         else:
             raise ValueError("Unkown algorithm {}.")
 

@@ -1,6 +1,5 @@
 from eat.core import utilities
 from eat.core.components import ValidTermGenerator
-from random import choice
 import logging
 import time
 
@@ -68,13 +67,12 @@ class DeepDrillingAlgorithm():
 
     def get_male_term(self, generation_method="random"):
         if generation_method == "random":
-            return self.vtg.generate()
+            return self.vtg.generate(algorithm="GRA")
         elif generation_method == "random-12-terms":
-            test_terms = ["x", "y", "z", "xx*", "xy*", "xz*", "yx*", "yy*",
-                          "yz*", "zx*", "zy*", "zz*"]
-            return choice(test_terms)
-            
-    def run(self, male_term_generation_method="random", verbose=False):
+            return self.vtg.generate(algorithm="random-12-terms")
+
+    def run(self, male_term_generation_method="random", verbose=False,
+            print_summary=False):
         pds = []  # push down stack containing number of terms
         pds.append(1)
 
@@ -156,6 +154,7 @@ class DeepDrillingAlgorithm():
         if (verbose):
             print(dda)
             print("")
+        if (print_summary):
             print("Summary:")
             print("--------")
             print("Groupoid used:")

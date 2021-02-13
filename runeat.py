@@ -36,6 +36,9 @@ def parse_argments():
                         default="random")
     parser.add_argument('-v', '--verbose', help="Print verbose output",
                         action='store_true')
+    parser.add_argument('-ps', '--print-summary',
+                        help="Print a summary of the algorithms result",
+                        action='store_true')
     return parser.parse_args()
 
 
@@ -60,10 +63,12 @@ def main():
     mtgm = args.male_term_generation_method
 
     verbose = args.verbose
+    print_summary = args.print_summary
 
     # run the deep drilling algorithm
     dda = DeepDrillingAlgorithm(grp, to)
-    dda.run(male_term_generation_method=mtgm, verbose=verbose)
+    dda.run(male_term_generation_method=mtgm, verbose=verbose,
+            print_summary=print_summary)
 
 
 if __name__ == '__main__':
