@@ -96,7 +96,7 @@ class DeepDrillingAlgorithm():
             if label == "T" or label.startswith("B") or label.startswith("L"):
                 male_term = self.get_male_term(
                     generation_method=male_term_generation_method)
-                male_term_sol = self.to.solve(male_term)
+                male_term_sol = self.to.compute(male_term)
                 # check to see if there was a variable solution to the term
                 if(self.to.is_solution(male_term_sol, last_row.array)):
                     self.logger.debug("STEP 1 A")
@@ -144,7 +144,7 @@ class DeepDrillingAlgorithm():
                     combined_term = utilities.combine_postfix(second.label,
                                                               last_row.label)
                     new_row.label = combined_term
-                    new_row.array = self.to.solve(combined_term)
+                    new_row.array = self.to.compute(combined_term)
                     new_row.m = m
             dda.table.append(new_row)
             N = N + 1
@@ -163,7 +163,7 @@ class DeepDrillingAlgorithm():
             print(s.label)
             print("Term length  = {}".format(len(s.label)))
             print("Search time  = {} sec".format(end - start))
-            print("Term array   = {}".format(self.to.solve(s.label)))
+            print("Term array   = {}".format(self.to.compute(s.label)))
             print("Target array = {}".format(self.to.target))
         else:
             print(s.label)

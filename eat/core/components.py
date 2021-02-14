@@ -1,7 +1,8 @@
 import itertools
 import math
 from random import choice, uniform
-from eat.core.utilities import subset_sums, get_term_variables
+from eat.core.utilities import subset_sums, get_term_variables, \
+    get_all_one_and_two_variable_terms
 
 
 class Groupoid():
@@ -320,28 +321,6 @@ class TermOperation():
                         r_array[row_idx].append(grp_col)
         return r_array
 
-    def solve_variable_solution(self, term_solution, side="left"):
-        has_var_sol = True
-        variable_sol = [[] for _ in range(0, len(term_solution))]
-        for idx, term_sol_arr in enumerate(term_solution):
-            for term_sol_val in term_sol_arr:
-                for input_val in range(0, self.groupoid.size):
-                    if side == "left":
-                        if self.groupoid.get_value(input_val,
-                                                   term_sol_val) in \
-                                self.target[idx]:
-                            if input_val not in variable_sol[idx]:
-                                variable_sol[idx].append(input_val)
-                    elif side == "right":
-                        if self.groupoid.get_value(term_sol_val,
-                                                   input_val) in \
-                                self.target[idx]:
-                            if input_val not in variable_sol[idx]:
-                                variable_sol[idx].append(input_val)
-            if len(variable_sol[idx]) == 0:
-                has_var_sol = False
-        return has_var_sol, variable_sol
-
     def is_solution(self, input_array, target_array):
         """
         Checks if input_array is a solution to the target_array.
@@ -366,6 +345,23 @@ class TermOperation():
 
     def solve(self, term, operator="*"):
         """
+        Solves the value of a term containing ony numbers and operator values
+        """
+        pds = []
+        term_list = [int(i) if i.isdigit() else i
+                     for i in list(term)]
+        for i in term_list:
+            if type(i) is int:
+                pds.append(i)
+            else:
+                val2 = pds.pop()
+                val1 = pds.pop()
+                pds.append(self.groupoid.get_value(val1,
+                                                   val2))
+        return pds.pop()
+
+    def compute(self, term, operator="*"):
+        """
         Computes output array for the given term
 
         :type term: string
@@ -382,20 +378,31 @@ class TermOperation():
             term_variables = self.get_term_variable_mapping(input_row)
             for var, val in term_variables.items():
                 char_term = char_term.replace(var, str(val))
-            term_list = [int(i) if i.isdigit() else i
-                         for i in list(char_term)]
-            pds = []
-            for i in term_list:
-                if type(i) is int:
-                    pds.append(i)
-                else:
-                    val2 = pds.pop()
-                    val1 = pds.pop()
-                    pds.append(self.groupoid.get_value(val1,
-                                                       val2))
-            out = pds.pop()
+            out = self.solve(char_term)
             output.append([out])
         return output
+
+    def compute_variable_solution(self, female_term, solution_array):
+        """
+        Check if female term is valid. Meaning that there is a value such that
+        the female term produces the correct solution.
+        """
+        has_var_sol = True
+        variable_sol = [[] for _ in range(0, len(solution_array))]
+        for idx, input_row in enumerate(self.input):
+            term = female_term
+            term_variables_mapping = self.get_term_variable_mapping(input_row)
+            for var, val in term_variables_mapping.items():
+                term = term.replace(var, str(val))
+            # see if one of the input values provides a solution
+            for input_val in range(0, self.groupoid.size):
+                test_term = "{}*".format(term.replace("F", str(input_val)))
+                term_val = self.solve(test_term)
+                if term_val in self.target[idx]:
+                    variable_sol[idx].append(input_val)
+            if len(variable_sol[idx]) == 0:
+                has_var_sol = False
+        return has_var_sol, variable_sol
 
 
 class ValidTermGenerator():
@@ -403,7 +410,7 @@ class ValidTermGenerator():
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
-    def gamblers_ruin_algorithm(self, prob=0.25):
+    def gamblers_ruin_algorithm(self, prob=0.5):
         """
         Generate a random term using the gamblers ruin algorithm
 
@@ -433,18 +440,10 @@ class ValidTermGenerator():
         if (len(self.term_variables) != 3):
             raise RuntimeError("The 'random_12_terms' term generation method "
                                "only applies to 3 variable term operations.")
-        combinations = []
-        for i in range(len(self.term_variables)+1):
-            for combination in \
-                    itertools.product(self.term_variables, repeat=i):
-                combination = "".join(combination)
-                if len(combination) == 1:
-                    combinations.append(combination)
-                elif len(combination) == 2:
-                    combinations.append("{}*".format(combination))
+        combinations = get_all_one_and_two_variable_terms(self.term_variables)
         return choice(combinations)
 
-    def generate(self, algorithm="GRA", kwargs=None):
+    def generate(self, algorithm="GRA", **kwargs):
         if kwargs is None:
             kwargs = {}
         if algorithm == "GRA":

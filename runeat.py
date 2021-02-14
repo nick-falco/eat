@@ -1,4 +1,5 @@
 import argparse
+from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
 
@@ -8,7 +9,7 @@ def parse_argments():
         description=('Implementation of Evolution of Algebraic Terms (EAT)'))
     parser.add_argument('-a', '--algorithm',
                         help="EAT algorithm to run. (default='DDA')",
-                        type=str, default="DDA", choices=["DDA"])
+                        type=str, default="DDA", choices=["DDA", "BEAM"])
     parser.add_argument('-g', '--groupoid',
                         help="Gropoid operation matrix",
                         nargs='+', type=int,
@@ -64,11 +65,16 @@ def main():
 
     verbose = args.verbose
     print_summary = args.print_summary
-
-    # run the deep drilling algorithm
-    dda = DeepDrillingAlgorithm(grp, to)
-    dda.run(male_term_generation_method=mtgm, verbose=verbose,
-            print_summary=print_summary)
+    algorithm = args.algorithm
+    if algorithm == "DDA":
+        # run the deep drilling algorithm
+        dda = DeepDrillingAlgorithm(grp, to)
+        dda.run(male_term_generation_method=mtgm, verbose=verbose,
+                print_summary=print_summary)
+    elif algorithm == "BEAM":
+        # run the beam algorithm
+        beam = BeamEnumerationAlgorithm(grp, to)
+        beam.run()
 
 
 if __name__ == '__main__':

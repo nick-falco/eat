@@ -1,4 +1,5 @@
 import unittest
+from eat.core.utilities import postfix_to_infix
 from eat.core.components import TermOperation, Groupoid, ValidTermGenerator
 
 
@@ -44,7 +45,7 @@ class TestTermOperation(unittest.TestCase):
         to = TermOperation(grp,
                            term_variables=["x", "y", "z"])
         to.target = to.get_ternary_descriminator_target_array()
-        sol = to.solve("xxz*xz***zyx*yxzyzxxy*z****zxxzxzz**yyx*xyz***zz****"
+        sol = to.compute("xxz*xz***zyx*yxzyzxxy*z****zxxzxzz**yyx*xyz***zz****"
                        "**********zzz*yzz*xy*xyxxyxyxxx*x*zz***xyxzxxz*z*****"
                        "****zzx*xz*******xzxxyyx*zx*****zxz********zxzxxyy*z*"
                        "**zzx*x*****yzyyxx****zxyzz*yxyzx*yyxyy****yxzxz***yy"
@@ -57,7 +58,10 @@ class TestTermOperation(unittest.TestCase):
                        "x**yyyzxxxyzyxzzzx*xy***************xzy*zyzyyxx*****z"
                        "xyzyyy*xy********************************")
         self.assertEqual(sol, to.target)
-        self.assertNotEqual(to.solve("xy*z*yz**"), to.target)
+        self.assertNotEqual(to.compute("xy*z*yz**"), to.target)
+
+    def test_postfix_to_infix(self):
+        self.assertEqual(postfix_to_infix("xy*z*"), "((x*y)*z)")
 
 
 class TestValidTermGenerator(unittest.TestCase):
