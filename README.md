@@ -38,11 +38,11 @@ To view a the help text displaying all options, run `eat -h`.
 
 3 element primal groupoid:
 
-| * | 0 | 1 | 2 |   
-|---|---|---|---
-| 0 | 0 | 1 | 2 |
-| 1 | 0 | 1 | 2 |
-| 2 | 0 | 1 | 2 |
+| * | 0 | 1 | 2 |
+|---|---|---|---|
+| 0 | 1 | 1 | 2 |
+| 1 | 0 | 2 | 0 |
+| 2 | 0 | 2 | 1 |
 
 and custom target array:
 
