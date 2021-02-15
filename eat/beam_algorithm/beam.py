@@ -4,11 +4,12 @@ from random import choice
 import logging
 
 
-class BeamRow():
+class FemaleNode():
 
-    def __init__(self, term, array):
+    def __init__(self, term, array, parent):
         self.term = term
         self.array = array
+        self.parent_node = parent
 
 
 class Beam():
@@ -23,93 +24,78 @@ class BeamEnumerationAlgorithm():
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
+        self.validity_terms = \
+            get_all_one_and_two_variable_terms(self.to.term_variables)
         self.logger = logging.getLogger(__name__)
 
-    def run(self):
-        beam = Beam()
-        beam.table.append(BeamRow("F", self.to.target))
+    def create_female_term(self, male_term, direction):
+        """
+        Given a male term and a direction (left or right) returns a new female
+        term string
+        """
+        female_term = ""
+        if direction == "left":
+            female_term = "F{}".format(male_term)
+        elif direction == "right":
+            female_term = "{}F".format(male_term)
+        return female_term
 
-        male_terms = self.to.term_variables
-        validity_terms = \
-            get_all_one_and_two_variable_terms(self.to.term_variables)
+    def try_to_create_valid_female_node(self, male_term, curr_fnode):
+        """
+        
+        """
+        direction_order = choice([["left", "right"],
+                                  ["right", "left"]])
+        for direction in direction_order:
+            new_female_term = self.create_female_term(male_term,
+                                                      direction)
+            has_var_sol, var_sol = \
+                self.to.compute_variable_solution(new_female_term,
+                                                  curr_fnode.array)
+            if has_var_sol:
+                return FemaleNode(new_female_term, var_sol, curr_fnode)
+        else:
+            # we couldn't find a valid female term
+            return None
 
-        solution = None
+    def continuously_search_for_valid_female_node(self, curr_fnode):
+        """
+        Continuously searches for a valid female node
+        """
+        # first we check for new valid female terms using the standard
+        # set of validity terms
+        for validity_term in self.validity_terms:
+            fnode = self.try_to_create_valid_female_node(validity_term,
+                                                         curr_fnode)
+            if fnode:
+                return fnode
+        # if no validity terms produce valid female term, we continue
+        # to try random terms
         while(True):
-            last_row = beam.table[-1]
-            female_term = last_row.term
-            print("STEP 1")
-            print("female_term = %s" % female_term)
-            for mt in validity_terms:
-                male_term = female_term.replace("F", mt)
-                male_term_sol = self.to.compute(mt)
-                if(self.to.is_solution(male_term_sol, last_row.array)):
-                    # found a solution
-                    print("FOUND A SOLUTION!!!!!!!!!!!!!!!!!")
-                    solution = male_term
-                    print(solution)
-                    return
-                    break
-            else:
-                print("STEP 2")
-                has_var_sol = False
-                var_sol = []
-                new_female_term = ""
+            random_term = self.vtg.generate(prob=0.3)
+            fnode = self.try_to_create_valid_female_node(random_term,
+                                                         curr_fnode)
+            if fnode:
+                return fnode
 
-                # randomly choose to go right or left first
-                direction_order = choice([["left", "right"],
-                                          ["right", "left"]])
-                for direction in direction_order:
-                    print(direction)
-                    # we need to check for new valid female terms with respect
-                    # to the last female term
-                    for validity_term in validity_terms:
-                        # first check left then check right
-                        test_term = ""
-                        if direction == "left":
-                            test_term = "F{}".format(validity_term)
-                        elif direction == "right":
-                            test_term = "{}F".format(validity_term)
-                        has_var_sol, var_sol = \
-                            self.to.compute_variable_solution(test_term,
-                                                              last_row.array)
-                        if has_var_sol:
-                            if direction == "left":
-                                new_female_term = female_term.replace(
-                                    "F", "{}*".format(test_term))
-                            elif direction == "right":
-                                new_female_term = female_term.replace(
-                                    "F", "{}*".format(test_term))
-                else:
-                    print("STEP 2 B")
-                    # try a random term
-                    while(True):
-                        direction_order = choice([["left", "right"],
-                                                  ["right", "left"]])
-                        random_term = self.vtg.generate(prob=0.3)
-                        for direction in direction_order:
-                            test_term = ""
-                            if direction == "left":
-                                test_term = "F{}".format(random_term)
-                            elif direction == "right":
-                                test_term = "{}F".format(random_term)
-                            has_var_sol, var_sol = \
-                                self.to.compute_variable_solution(
-                                    test_term, last_row.array)
-                            if has_var_sol:
-                                if direction == "left":
-                                    new_female_term = female_term.replace(
-                                        "F", "{}*".format(test_term))
-                                elif direction == "right":
-                                    new_female_term = female_term.replace(
-                                        "F", "{}*".format(test_term))
-                                break
-                        if has_var_sol:
-                            break
-                print("var_sol = %s" % var_sol)
-                new_beam = BeamRow(new_female_term, var_sol)
-                beam.table.append(new_beam)
-                    
-            if (solution):
-                print("solution = %s" % solution)
+    def check_if_has_validity_solution(self, curr_fnode):
+        for mt in self.validity_terms:
+            male_term = curr_fnode.term.replace("F", mt)
+            male_term_sol = self.to.compute(mt)
+            if(self.to.is_solution(male_term_sol, curr_fnode.array)):
+                # found a solution
+                return male_term
+
+    def run(self):
+        solution = None
+        curr_fnode = FemaleNode("F", self.to.target, None)
+        while(True):
+            print(curr_fnode)
+            solution = self.check_if_has_validity_solution(curr_fnode)
+            if solution:
                 break
+            else:
+                fnode = \
+                    self.continuously_search_for_valid_female_node(curr_fnode)
+                curr_fnode = fnode
         print("Found solution {}".format(solution))
