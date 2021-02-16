@@ -53,10 +53,12 @@ class DDA_Table():
 
 class DeepDrillingAlgorithm():
 
-    def __init__(self, groupoid, term_operation):
+    def __init__(self, groupoid, term_operation,
+                 term_expansion_probability=0.3):
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
+        self.term_expansion_probability = term_expansion_probability
         self.logger = logging.getLogger(__name__)
 
     def get_k_from_label(self, rowlabel):
@@ -67,7 +69,8 @@ class DeepDrillingAlgorithm():
 
     def get_male_term(self, generation_method="random"):
         if generation_method == "random":
-            return self.vtg.generate(algorithm="GRA")
+            return self.vtg.generate(algorithm="GRA",
+                                     prob=self.term_expansion_probability)
         elif generation_method == "random-12-terms":
             return self.vtg.generate(algorithm="random-12-terms")
 

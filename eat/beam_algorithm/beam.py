@@ -13,13 +13,15 @@ class Node():
 
 class BeamEnumerationAlgorithm():
 
-    def __init__(self, groupoid, term_operation):
+    def __init__(self, groupoid, term_operation,
+                 term_expansion_probability=0.3):
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self.validity_terms = \
             get_all_one_and_two_variable_terms(self.to.term_variables)
         self.male_terms = self.to.term_variables
+        self.term_expansion_probability = term_expansion_probability
         self.logger = logging.getLogger(__name__)
 
     def create_female_term(self, male_term, direction):
@@ -65,7 +67,8 @@ class BeamEnumerationAlgorithm():
         # if no validity terms produce valid female term, we continue
         # to try random terms
         while(True):
-            random_term = self.vtg.generate(prob=0.3)
+            random_term = self.vtg.generate(
+                prob=self.term_expansion_probability)
             fnode = self.try_to_create_valid_female_node(random_term,
                                                          curr_fnode)
             if fnode:
