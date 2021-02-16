@@ -382,7 +382,7 @@ class TermOperation():
             output.append([out])
         return output
 
-    def compute_variable_solution(self, female_term, solution_array):
+    def compute_validity_array(self, female_term, solution_array):
         """
         Check if female term is valid. Meaning that there is a value such that
         the female term produces the correct solution.
@@ -397,11 +397,12 @@ class TermOperation():
             # see if one of the input values provides a solution
             for input_val in range(0, self.groupoid.size):
                 test_term = "{}*".format(term.replace("F", str(input_val)))
-                term_val = self.solve(test_term)
-                if term_val in self.target[idx]:
+                sol = self.solve(test_term)
+                if sol in solution_array[idx]:
                     variable_sol[idx].append(input_val)
             if len(variable_sol[idx]) == 0:
                 has_var_sol = False
+                break
         return has_var_sol, variable_sol
 
 

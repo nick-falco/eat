@@ -38,30 +38,70 @@ class TestTermOperation(unittest.TestCase):
         self.assertTrue(to.is_solution([[0], [1], [0], [2]],
                                        [[0, 1, 2], [0, 1], [0, 1], [0, 2]]))
 
-    def test_solve(self):
+    def test_compute(self):
         grp = Groupoid(data=[1, 1, 2,
                              0, 2, 0,
                              0, 2, 1])
         to = TermOperation(grp,
                            term_variables=["x", "y", "z"])
         to.target = to.get_ternary_descriminator_target_array()
-        sol = to.compute("xxz*xz***zyx*yxzyzxxy*z****zxxzxzz**yyx*xyz***zz****"
-                       "**********zzz*yzz*xy*xyxxyxyxxx*x*zz***xyxzxxz*z*****"
-                       "****zzx*xz*******xzxxyyx*zx*****zxz********zxzxxyy*z*"
-                       "**zzx*x*****yzyyxx****zxyzz*yxyzx*yyxyy****yxzxz***yy"
-                       "yxzxyx***zzxyy*********zzz**x*yxyyz****xy*xyyxyz*yz*y"
-                       "zz*y*********************************zyz*zyx*xzzy****"
-                       "***zyxxyxx*x***zz*zy*zyyzz*yyyyx****xxz**xy*zzy******"
-                       "********yzxyzxxyzyyyzzzzxzyzyxyxzyzzzxzyzzxxyzyxzzyyz"
-                       "y*zyyyy**********************************************"
-                       "***zzx**xyxx*yxzy*****xzyyy*yx****zzy*zzy*yyzy**xxxz*"
-                       "x**yyyzxxxyzyxzzzx*xy***************xzy*zyzyyxx*****z"
-                       "xyzyyy*xy********************************")
+        sol = to.compute(
+            "xxz*xz***zyx*yxzyzxxy*z****zxxzxzz**yyx*xyz***zz****"
+            "**********zzz*yzz*xy*xyxxyxyxxx*x*zz***xyxzxxz*z*****"
+            "****zzx*xz*******xzxxyyx*zx*****zxz********zxzxxyy*z*"
+            "**zzx*x*****yzyyxx****zxyzz*yxyzx*yyxyy****yxzxz***yy"
+            "yxzxyx***zzxyy*********zzz**x*yxyyz****xy*xyyxyz*yz*y"
+            "zz*y*********************************zyz*zyx*xzzy****"
+            "***zyxxyxx*x***zz*zy*zyyzz*yyyyx****xxz**xy*zzy******"
+            "********yzxyzxxyzyyyzzzzxzyzyxyxzyzzzxzyzzxxyzyxzzyyz"
+            "y*zyyyy**********************************************"
+            "***zzx**xyxx*yxzy*****xzyyy*yx****zzy*zzy*yyzy**xxxz*"
+            "x**yyyzxxxyzyxzzzx*xy***************xzy*zyzyyxx*****z"
+            "xyzyyy*xy********************************")
         self.assertEqual(sol, to.target)
         self.assertNotEqual(to.compute("xy*z*yz**"), to.target)
 
+    def test_solve(self):
+        grp = Groupoid(data=[2, 1, 2,
+                             1, 0, 0,
+                             0, 0, 1])
+        to = TermOperation(grp, term_variables=["x", "y", "z"])
+        self.assertEqual(to.solve("0011***"), 2)
+
     def test_postfix_to_infix(self):
         self.assertEqual(postfix_to_infix("xy*z*"), "((x*y)*z)")
+    
+    def test_compute_validity_array(self):
+        grp = Groupoid(data=[2, 1, 2,
+                             1, 0, 0,
+                             0, 0, 1])
+        to = TermOperation(grp, term_variables=["x", "y", "z"])
+
+        has_validity_array, validity_array = to.compute_validity_array(
+            "Fxzxx*xz**z**y**",
+            [[0], [1], [2], [0], [0], [0], [0], [0], [0], [1], [1], [1], [0],
+             [1], [2], [1], [1], [1], [2], [2], [2], [2], [2], [2], [0], [1],
+             [2]])
+
+        self.assertTrue(has_validity_array)
+        self.assertEqual(
+            validity_array,
+            [[1, 2], [2], [0], [1], [1, 2], [1, 2], [1], [1], [1], [1], [1],
+             [1], [1, 2], [0], [0], [0], [0], [1], [0], [0], [0], [0], [0],
+             [0], [2], [1], [0]])
+
+        has_validity_array, validity_array = to.compute_validity_array(
+            "Fxxyy***",
+            [[1, 2], [2], [0], [1], [1, 2], [1, 2], [1], [1], [1], [1], [1],
+             [1], [1, 2], [0], [0], [0], [0], [1], [0], [0], [0], [0], [0],
+             [0], [2], [1], [0]])
+
+        self.assertTrue(has_validity_array)
+        self.assertEqual(
+            validity_array,
+            [[0, 2], [0], [1], [2], [0, 2], [0, 2], [0], [0], [0], [0], [0],
+             [0], [0, 1], [2], [2], [1, 2], [1, 2], [0], [2], [2], [2], [2],
+             [2], [2], [0], [1], [2]])
 
 
 class TestValidTermGenerator(unittest.TestCase):

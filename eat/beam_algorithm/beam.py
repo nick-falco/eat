@@ -1,21 +1,14 @@
 from eat.core.components import ValidTermGenerator
 from eat.core.utilities import get_all_one_and_two_variable_terms
-from random import choice
 import logging
 
 
-class FemaleNode():
+class Node():
 
     def __init__(self, term, array, parent):
         self.term = term
         self.array = array
         self.parent_node = parent
-
-
-class Beam():
-
-    def __init__(self):
-        self.table = []
 
 
 class BeamEnumerationAlgorithm():
@@ -26,6 +19,7 @@ class BeamEnumerationAlgorithm():
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self.validity_terms = \
             get_all_one_and_two_variable_terms(self.to.term_variables)
+        self.male_terms = self.to.term_variables
         self.logger = logging.getLogger(__name__)
 
     def create_female_term(self, male_term, direction):
@@ -44,16 +38,15 @@ class BeamEnumerationAlgorithm():
         """
         
         """
-        direction_order = choice([["left", "right"],
-                                  ["right", "left"]])
+        direction_order = ["right", "left"]
         for direction in direction_order:
             new_female_term = self.create_female_term(male_term,
                                                       direction)
             has_var_sol, var_sol = \
-                self.to.compute_variable_solution(new_female_term,
-                                                  curr_fnode.array)
+                self.to.compute_validity_array(new_female_term,
+                                               curr_fnode.array)
             if has_var_sol:
-                return FemaleNode(new_female_term, var_sol, curr_fnode)
+                return Node(new_female_term, var_sol, curr_fnode)
         else:
             # we couldn't find a valid female term
             return None
@@ -64,11 +57,11 @@ class BeamEnumerationAlgorithm():
         """
         # first we check for new valid female terms using the standard
         # set of validity terms
-        for validity_term in self.validity_terms:
+        '''for validity_term in self.validity_terms:
             fnode = self.try_to_create_valid_female_node(validity_term,
                                                          curr_fnode)
             if fnode:
-                return fnode
+                return fnode'''
         # if no validity terms produce valid female term, we continue
         # to try random terms
         while(True):
@@ -78,24 +71,38 @@ class BeamEnumerationAlgorithm():
             if fnode:
                 return fnode
 
-    def check_if_has_validity_solution(self, curr_fnode):
-        for mt in self.validity_terms:
+    def check_if_has_male_term_solution(self, curr_fnode):
+        for mt in self.male_terms:
             male_term = curr_fnode.term.replace("F", mt)
             male_term_sol = self.to.compute(mt)
             if(self.to.is_solution(male_term_sol, curr_fnode.array)):
                 # found a solution
-                return male_term
+                return Node(male_term, male_term_sol, curr_fnode)
 
     def run(self):
-        solution = None
-        curr_fnode = FemaleNode("F", self.to.target, None)
+        sol_node = None
+        curr_fnode = Node("F", self.to.target, None)
+        level = 1
+        print("Printing (Recursion level, valid female term, validity array)")
         while(True):
-            print(curr_fnode)
-            solution = self.check_if_has_validity_solution(curr_fnode)
-            if solution:
+            print(level, curr_fnode.term, curr_fnode.array)
+            sol_node = self.check_if_has_male_term_solution(curr_fnode)
+            if sol_node:
                 break
             else:
                 fnode = \
                     self.continuously_search_for_valid_female_node(curr_fnode)
                 curr_fnode = fnode
-        print("Found solution {}".format(solution))
+            level = level + 1
+        node = sol_node
+        while(node.parent_node is not None):
+            # recursively construct the term
+            node.parent_node.term = \
+                node.parent_node.term.replace("F", "{}*".format(node.term))
+            node = node.parent_node
+        print("Final solution term  = {}".format(node.term))
+        print("Soution term array   = {}"
+              .format(self.to.compute(node.term)))
+        print("Target array         = {}".format(self.to.target))
+
+
