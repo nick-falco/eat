@@ -1,6 +1,20 @@
 import argparse
+from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
+
+
+def restricted_float(x):
+    try:
+        x = float(x)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+                "%r not a floating-point literal" % (x,))
+
+    if x < 0.0 or x > 1.0:
+        raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]"
+                                         .format(x))
+    return x
 
 
 def parse_argments():
@@ -8,7 +22,7 @@ def parse_argments():
         description=('Implementation of Evolution of Algebraic Terms (EAT)'))
     parser.add_argument('-a', '--algorithm',
                         help="EAT algorithm to run. (default='DDA')",
-                        type=str, default="DDA", choices=["DDA"])
+                        type=str, default="DDA", choices=["DDA", "BEAM"])
     parser.add_argument('-g', '--groupoid',
                         help="Gropoid operation matrix",
                         nargs='+', type=int,
@@ -34,6 +48,12 @@ def parse_argments():
                               "term from the set of 12 one and two variable "
                               "terms. (default='random')"),
                         default="random")
+    parser.add_argument('-p', '--probability',
+                        help=("For random term generation specify the "
+                              "probability of growing the random term. "
+                              "Must be a number between 0 and 1. "
+                              "(default = 0.3)"),
+                        type=restricted_float, default=0.3)
     parser.add_argument('-v', '--verbose', help="Print verbose output",
                         action='store_true')
     parser.add_argument('-ps', '--print-summary',
@@ -64,11 +84,18 @@ def main():
 
     verbose = args.verbose
     print_summary = args.print_summary
-
-    # run the deep drilling algorithm
-    dda = DeepDrillingAlgorithm(grp, to)
-    dda.run(male_term_generation_method=mtgm, verbose=verbose,
-            print_summary=print_summary)
+    prob = args.probability
+    algorithm = args.algorithm
+    if algorithm == "DDA":
+        # run the deep drilling algorithm
+        dda = DeepDrillingAlgorithm(grp, to, term_expansion_probability=prob)
+        dda.run(male_term_generation_method=mtgm, verbose=verbose,
+                print_summary=print_summary)
+    elif algorithm == "BEAM":
+        # run the beam algorithm
+        beam = BeamEnumerationAlgorithm(grp, to,
+                                        term_expansion_probability=prob)
+        beam.run(verbose=verbose, print_summary=print_summary)
 
 
 if __name__ == '__main__':

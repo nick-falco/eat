@@ -1,5 +1,5 @@
-from eat.core import utilities
 from eat.core.components import ValidTermGenerator
+from eat.core.utilities import combine_postfix, print_search_summary
 import logging
 import time
 
@@ -53,10 +53,12 @@ class DDA_Table():
 
 class DeepDrillingAlgorithm():
 
-    def __init__(self, groupoid, term_operation):
+    def __init__(self, groupoid, term_operation,
+                 term_expansion_probability=0.3):
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
+        self.term_expansion_probability = term_expansion_probability
         self.logger = logging.getLogger(__name__)
 
     def get_k_from_label(self, rowlabel):
@@ -67,7 +69,8 @@ class DeepDrillingAlgorithm():
 
     def get_male_term(self, generation_method="random"):
         if generation_method == "random":
-            return self.vtg.generate(algorithm="GRA")
+            return self.vtg.generate(algorithm="GRA",
+                                     prob=self.term_expansion_probability)
         elif generation_method == "random-12-terms":
             return self.vtg.generate(algorithm="random-12-terms")
 
@@ -96,7 +99,7 @@ class DeepDrillingAlgorithm():
             if label == "T" or label.startswith("B") or label.startswith("L"):
                 male_term = self.get_male_term(
                     generation_method=male_term_generation_method)
-                male_term_sol = self.to.solve(male_term)
+                male_term_sol = self.to.compute(male_term)
                 # check to see if there was a variable solution to the term
                 if(self.to.is_solution(male_term_sol, last_row.array)):
                     self.logger.debug("STEP 1 A")
@@ -141,10 +144,10 @@ class DeepDrillingAlgorithm():
                     first, second = dda.get_n_eq_k(k)
                     new_row.N = N
                     new_row.n = pds.pop()
-                    combined_term = utilities.combine_postfix(second.label,
-                                                              last_row.label)
+                    combined_term = combine_postfix(second.label,
+                                                    last_row.label)
                     new_row.label = combined_term
-                    new_row.array = self.to.solve(combined_term)
+                    new_row.array = self.to.compute(combined_term)
                     new_row.m = m
             dda.table.append(new_row)
             N = N + 1
@@ -155,15 +158,6 @@ class DeepDrillingAlgorithm():
             print(dda)
             print("")
         if (print_summary):
-            print("Summary:")
-            print("--------")
-            print("Groupoid used:")
-            print(self.grp)
-            print("Computed term:")
-            print(s.label)
-            print("Term length  = {}".format(len(s.label)))
-            print("Search time  = {} sec".format(end - start))
-            print("Term array   = {}".format(self.to.solve(s.label)))
-            print("Target array = {}".format(self.to.target))
+            print_search_summary(s.label, self.to, self.grp, end - start)
         else:
             print(s.label)
