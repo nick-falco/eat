@@ -396,7 +396,7 @@ class TermOperation():
                 term = term.replace(var, str(val))
             # see if one of the input values provides a solution
             for input_val in range(0, self.groupoid.size):
-                test_term = "{}*".format(term.replace("F", str(input_val)))
+                test_term = term.replace("F", str(input_val))
                 sol = self.solve(test_term)
                 if sol in solution_array[idx]:
                     variable_sol[idx].append(input_val)

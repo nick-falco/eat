@@ -1,5 +1,5 @@
-from eat.core import utilities
 from eat.core.components import ValidTermGenerator
+from eat.core.utilities import combine_postfix, print_search_summary
 import logging
 import time
 
@@ -144,8 +144,8 @@ class DeepDrillingAlgorithm():
                     first, second = dda.get_n_eq_k(k)
                     new_row.N = N
                     new_row.n = pds.pop()
-                    combined_term = utilities.combine_postfix(second.label,
-                                                              last_row.label)
+                    combined_term = combine_postfix(second.label,
+                                                    last_row.label)
                     new_row.label = combined_term
                     new_row.array = self.to.compute(combined_term)
                     new_row.m = m
@@ -158,15 +158,6 @@ class DeepDrillingAlgorithm():
             print(dda)
             print("")
         if (print_summary):
-            print("Summary:")
-            print("--------")
-            print("Groupoid used:")
-            print(self.grp)
-            print("Computed term:")
-            print(s.label)
-            print("Term length  = {}".format(len(s.label)))
-            print("Search time  = {} sec".format(end - start))
-            print("Term array   = {}".format(self.to.compute(s.label)))
-            print("Target array = {}".format(self.to.target))
+            print_search_summary(s.label, self.to, self.grp, end - start)
         else:
             print(s.label)

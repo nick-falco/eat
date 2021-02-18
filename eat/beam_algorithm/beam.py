@@ -1,6 +1,8 @@
 from eat.core.components import ValidTermGenerator
-from eat.core.utilities import get_all_one_and_two_variable_terms
+from eat.core.utilities import get_all_one_and_two_variable_terms, \
+    print_search_summary
 import logging
+import time
 
 
 class Node():
@@ -31,9 +33,9 @@ class BeamEnumerationAlgorithm():
         """
         female_term = ""
         if direction == "left":
-            female_term = "F{}".format(male_term)
+            female_term = "F{}*".format(male_term)
         elif direction == "right":
-            female_term = "{}F".format(male_term)
+            female_term = "{}F*".format(male_term)
         return female_term
 
     def try_to_create_valid_female_node(self, male_term, curr_fnode):
@@ -81,13 +83,17 @@ class BeamEnumerationAlgorithm():
                 # found a solution
                 return Node(mt, male_term_sol, curr_fnode)
 
-    def run(self):
+    def run(self, verbose=False, print_summary=False):
+        verbose_output = []
         sol_node = None
         curr_fnode = Node("F", self.to.target, None)
         level = 1
-        print("Printing (Recursion level, valid female term, validity array)")
+
+        start = time.time()
         while(True):
-            print(level, curr_fnode.term, curr_fnode.array)
+            if verbose:
+                verbose_output.append(
+                    [str(level), str(curr_fnode.term), str(curr_fnode.array)])
             sol_node = self.check_if_has_male_term_solution(curr_fnode)
             if sol_node:
                 break
@@ -99,16 +105,20 @@ class BeamEnumerationAlgorithm():
         node = sol_node
         while(node.parent_node is not None):
             # recursively construct the term
-            if len(node.term) > 1:
-                node.parent_node.term = \
-                    node.parent_node.term.replace("F", "{}*".format(node.term))
-            else:
-                node.parent_node.term = \
-                    node.parent_node.term.replace("F", "{}".format(node.term))
+            node.parent_node.term = \
+                node.parent_node.term.replace("F", node.term)
             node = node.parent_node
-        print("Final solution term  = {}".format(node.term))
-        print("Soution term array   = {}"
-              .format(self.to.compute(node.term)))
-        print("Target array         = {}".format(self.to.target))
+        end = time.time()
+
+        if (verbose):
+            print("Recursion level, valid female term, "
+                  "validity array")
+            for vo in verbose_output:
+                print(", ".join(vo))
+            print("")
+        if (print_summary):
+            print_search_summary(node.term, self.to, self.grp, end - start)
+        else:
+            print(node.term)
 
 

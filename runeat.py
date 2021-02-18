@@ -95,7 +95,7 @@ def main():
         # run the beam algorithm
         beam = BeamEnumerationAlgorithm(grp, to,
                                         term_expansion_probability=prob)
-        beam.run()
+        beam.run(verbose=verbose, print_summary=print_summary)
 
 
 if __name__ == '__main__':

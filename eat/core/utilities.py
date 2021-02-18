@@ -55,3 +55,16 @@ def postfix_to_infix(exp):
 
 def combine_postfix(term1, term2):
     return "{}{}*".format(term1, term2)
+
+
+def print_search_summary(term, term_operation, groupoid, search_time):
+    print("Summary:")
+    print("--------")
+    print("Groupoid used:")
+    print(groupoid)
+    print("Computed term:")
+    print(term)
+    print("Term length  = {}".format(len(term)))
+    print("Search time  = {} sec".format(search_time))
+    print("Term array   = {}".format(term_operation.compute(term)))
+    print("Target array = {}".format(term_operation.target))
