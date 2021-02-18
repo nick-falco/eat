@@ -76,11 +76,10 @@ class BeamEnumerationAlgorithm():
 
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
-            male_term = curr_fnode.term.replace("F", mt)
             male_term_sol = self.to.compute(mt)
             if(self.to.is_solution(male_term_sol, curr_fnode.array)):
                 # found a solution
-                return Node(male_term, male_term_sol, curr_fnode)
+                return Node(mt, male_term_sol, curr_fnode)
 
     def run(self):
         sol_node = None
@@ -100,8 +99,12 @@ class BeamEnumerationAlgorithm():
         node = sol_node
         while(node.parent_node is not None):
             # recursively construct the term
-            node.parent_node.term = \
-                node.parent_node.term.replace("F", "{}*".format(node.term))
+            if len(node.term) > 1:
+                node.parent_node.term = \
+                    node.parent_node.term.replace("F", "{}*".format(node.term))
+            else:
+                node.parent_node.term = \
+                    node.parent_node.term.replace("F", "{}".format(node.term))
             node = node.parent_node
         print("Final solution term  = {}".format(node.term))
         print("Soution term array   = {}"
