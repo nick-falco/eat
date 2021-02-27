@@ -32,9 +32,13 @@ def parse_argments():
                        help="Ternary descriminator target output (default)",
                        action='store_true')
     group.add_argument('-trt', '--target-random',
-                       help="Random target output (default)", action='store_true')
+                       help="Random target output (default)",
+                       action='store_true')
     group.add_argument('-t', '--target', help="Custom target output",
-                       nargs='+', type=int)
+                       nargs='+', type=str)
+    parser.add_argument('-tfc', '--target_free_count',
+                        help=("Number of target values to force to accept any "
+                              "input value"), type=int, default=0)
     parser.add_argument('-tv', '--term-variables',
                         help="Term variables to use. (default=['x','y',z'])",
                         nargs='+', type=str, default=["x", "y", "z"])
@@ -69,16 +73,21 @@ def main():
 
     # setup term operation
     to_options = {}
-    if args.target:
-        to_options["target"] = [[t] for t in args.target]
     if args.term_variables:
         to_options["term_variables"] = args.term_variables
     to = TermOperation(grp,
                        **to_options)
-    if args.target_random:
+    if args.target:
+        to.target = \
+            [[int(v) for v in t.split(",")] for t in args.target]
+    elif args.target_random:
         to.target = to.get_random_target_array()
     elif args.target_ternary_descriminator:
         to.target = to.get_ternary_descriminator_target_array()
+
+    if args.target_free_count > 0:
+        to.target = to.get_filled_target_array(to.target,
+                                               args.target_free_count)
 
     mtgm = args.male_term_generation_method
 

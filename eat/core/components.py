@@ -254,6 +254,22 @@ class TermOperation():
                 target_array.append([a])
         return target_array
 
+    def get_filled_target_array(self, target, target_free_count):
+        """
+        Returns a target solution with output values filled to accept any
+        possible input value (specified by target_free_count). This is designed
+        to make it possible to specify easier targets for groupoids with very
+        large search spaces.
+        """
+        if target_free_count > len(target):
+            raise ValueError("Specified a target free count ({}) greater than "
+                             "the length of the target array ({})."
+                             .format(target_free_count, len(target)))
+        for idx, row in enumerate(target):
+            if idx < target_free_count:
+                target[idx] = list(range(0, self.groupoid.size))
+        return target
+
     def get_term_variable_mapping(self, input_row, term_variables=None):
         """
         Returns a mapping of input values to term variables
