@@ -403,22 +403,34 @@ class TermOperation():
         Check if female term is valid. Meaning that there is a value such that
         the female term produces the correct solution.
         """
+
+        def is_target_full(target):
+            for input_val in range(0, self.groupoid.size):
+                if input_val not in target:
+                    return False
+            else:
+                return True
+
         has_var_sol = True
         variable_sol = [[] for _ in range(0, len(solution_array))]
         for idx, input_row in enumerate(self.input):
-            term = female_term
-            term_variables_mapping = self.get_term_variable_mapping(input_row)
-            for var, val in term_variables_mapping.items():
-                term = term.replace(var, str(val))
-            # see if one of the input values provides a solution
-            for input_val in range(0, self.groupoid.size):
-                test_term = term.replace("F", str(input_val))
-                sol = self.solve(test_term)
-                if sol in solution_array[idx]:
-                    variable_sol[idx].append(input_val)
-            if len(variable_sol[idx]) == 0:
-                has_var_sol = False
-                break
+            if is_target_full(solution_array[idx]):
+                variable_sol[idx] = solution_array[idx]
+            else:
+                term = female_term
+                term_variables_mapping = \
+                    self.get_term_variable_mapping(input_row)
+                for var, val in term_variables_mapping.items():
+                    term = term.replace(var, str(val))
+                # see if one of the input values provides a solution
+                for input_val in range(0, self.groupoid.size):
+                    test_term = term.replace("F", str(input_val))
+                    sol = self.solve(test_term)
+                    if sol in solution_array[idx]:
+                        variable_sol[idx].append(input_val)
+                if len(variable_sol[idx]) == 0:
+                    has_var_sol = False
+                    break
         return has_var_sol, variable_sol
 
 
