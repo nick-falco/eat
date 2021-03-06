@@ -54,11 +54,13 @@ class DDA_Table():
 class DeepDrillingAlgorithm():
 
     def __init__(self, groupoid, term_operation,
-                 term_expansion_probability=0.3):
+                 term_expansion_probability=0.3,
+                 male_term_generation_method="random"):
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self.term_expansion_probability = term_expansion_probability
+        self.male_term_generation_method = male_term_generation_method
         self.logger = logging.getLogger(__name__)
 
     def get_k_from_label(self, rowlabel):
@@ -74,8 +76,7 @@ class DeepDrillingAlgorithm():
         elif generation_method == "random-12-terms":
             return self.vtg.generate(algorithm="random-12-terms")
 
-    def run(self, male_term_generation_method="random", verbose=False,
-            print_summary=False):
+    def run(self, verbose=False, print_summary=False):
         pds = []  # push down stack containing number of terms
         pds.append(1)
 
@@ -98,7 +99,7 @@ class DeepDrillingAlgorithm():
             # check to see if rowtype is the first term, left array, or B array
             if label == "T" or label.startswith("B") or label.startswith("L"):
                 male_term = self.get_male_term(
-                    generation_method=male_term_generation_method)
+                    generation_method=self.male_term_generation_method)
                 male_term_sol = self.to.compute(male_term)
                 # check to see if there was a variable solution to the term
                 if(self.to.is_solution(male_term_sol, last_row.array)):

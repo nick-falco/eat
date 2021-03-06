@@ -15,8 +15,9 @@ class Node():
 
 class BeamEnumerationAlgorithm():
 
-    def __init__(self, groupoid, term_operation,
-                 term_expansion_probability=0.3):
+    def __init__(self, groupoid, term_operation, max_male_term_length=None,
+                 term_expansion_probability=0.3,
+                 male_term_generation_method="random"):
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
@@ -24,7 +25,18 @@ class BeamEnumerationAlgorithm():
             get_all_one_and_two_variable_terms(self.to.term_variables)
         self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
+        self.max_male_term_length = max_male_term_length
+        self.male_term_generation_method = male_term_generation_method
         self.logger = logging.getLogger(__name__)
+
+    def get_male_term(self, generation_method="random"):
+        if generation_method == "random":
+            return self.vtg.generate(
+                algorithm="GRA",
+                max_male_term_length=self.max_male_term_length,
+                prob=self.term_expansion_probability)
+        elif generation_method == "random-12-terms":
+            return self.vtg.generate(algorithm="random-12-terms")
 
     def create_female_term(self, male_term, direction):
         """
@@ -69,8 +81,9 @@ class BeamEnumerationAlgorithm():
         # if no validity terms produce valid female term, we continue
         # to try random terms
         while(True):
-            random_term = self.vtg.generate(
-                prob=self.term_expansion_probability)
+            random_term = self.get_male_term(
+                generation_method=self.male_term_generation_method
+            )
             fnode = self.try_to_create_valid_female_node(random_term,
                                                          curr_fnode)
             if fnode:
@@ -83,8 +96,8 @@ class BeamEnumerationAlgorithm():
                 # found a solution
                 return Node(mt, male_term_sol, curr_fnode)
 
-    def run(self, verbose=False, print_summary=False):
-        verbose_output = []
+    def run(self, verbose=False, print_summary=False,
+            include_validity_array=False):
         sol_node = None
         curr_fnode = Node("F", self.to.target, None)
         level = 1
@@ -92,8 +105,12 @@ class BeamEnumerationAlgorithm():
         start = time.time()
         while(True):
             if verbose:
-                verbose_output.append(
-                    [str(level), str(curr_fnode.term), str(curr_fnode.array)])
+                if include_validity_array:
+                    print(str(level), str(curr_fnode.term),
+                          str(curr_fnode.array), str(time.time() - start))
+                else:
+                    print(str(level), str(curr_fnode.term),
+                          str(time.time() - start))
             sol_node = self.check_if_has_male_term_solution(curr_fnode)
             if sol_node:
                 break
@@ -103,6 +120,7 @@ class BeamEnumerationAlgorithm():
                 curr_fnode = fnode
             level = level + 1
         node = sol_node
+
         while(node.parent_node is not None):
             # recursively construct the term
             node.parent_node.term = \
@@ -110,12 +128,6 @@ class BeamEnumerationAlgorithm():
             node = node.parent_node
         end = time.time()
 
-        if (verbose):
-            print("Recursion level, valid female term, "
-                  "validity array")
-            for vo in verbose_output:
-                print(", ".join(vo))
-            print("")
         if (print_summary):
             print_search_summary(node.term, self.to, self.grp, end - start)
         else:

@@ -32,17 +32,17 @@ def parse_argments():
                        help="Ternary descriminator target output (default)",
                        action='store_true')
     group.add_argument('-trt', '--target-random',
-                       help="Random target output (default)",
+                       help="Random target output",
                        action='store_true')
     group.add_argument('-t', '--target', help="Custom target output",
                        nargs='+', type=str)
     parser.add_argument('-tfc', '--target_free_count',
                         help=("Number of target values to force to accept any "
-                              "input value"), type=int, default=0)
+                              "input value (default=0)"), type=int, default=0)
     parser.add_argument('-tv', '--term-variables',
                         help="Term variables to use. (default=['x','y',z'])",
                         nargs='+', type=str, default=["x", "y", "z"])
-    parser.add_argument('-mtgm', "--male-term-generation-method",
+    parser.add_argument('-mtgm', '--male-term-generation-method',
                         choices=["random", "random-12-terms"],
                         help=("Method to use for generating male terms. "
                               "Choose from 'random' and 'random-12-terms'. "
@@ -52,17 +52,29 @@ def parse_argments():
                               "term from the set of 12 one and two variable "
                               "terms. (default='random')"),
                         default="random")
+    parser.add_argument('-mmtl', '--max-male-term-length',
+                        help=("Maximum length of a randomly generated term. "
+                              "(default=None)"),
+                        type=int, default=None),
     parser.add_argument('-p', '--probability',
                         help=("For random term generation specify the "
                               "probability of growing the random term. "
                               "Must be a number between 0 and 1. "
                               "(default = 0.3)"),
                         type=restricted_float, default=0.3)
-    parser.add_argument('-v', '--verbose', help="Print verbose output",
-                        action='store_true')
-    parser.add_argument('-ps', '--print-summary',
-                        help="Print a summary of the algorithms result",
-                        action='store_true')
+    log_group = parser.add_argument_group('Logging verbosity options')
+    log_group.add_argument('-v', '--verbose', help="Print verbose output",
+                           action='store_true')
+    log_group.add_argument('-ps', '--print-summary',
+                           help=("Print a summary of the algorithms result. "
+                                 "(default=False)"),
+                           action='store_true')
+    log_group.add_argument('-iva', '--include-validity-array',
+                           help=("For BEAM alogirthm, whether to include "
+                                 "validity array in verbose output "
+                                 "(default=False)"),
+                           action='store_true')
+
     return parser.parse_args()
 
 
@@ -90,21 +102,35 @@ def main():
                                                args.target_free_count)
 
     mtgm = args.male_term_generation_method
+    mmtl = args.max_male_term_length
 
     verbose = args.verbose
     print_summary = args.print_summary
+    include_validity_array = args.include_validity_array
+
     prob = args.probability
     algorithm = args.algorithm
     if algorithm == "DDA":
+        if include_validity_array:
+            raise ValueError("The --include-validity-array (-iva) option "
+                             "only applies to the BEAM algorithm.")
         # run the deep drilling algorithm
-        dda = DeepDrillingAlgorithm(grp, to, term_expansion_probability=prob)
-        dda.run(male_term_generation_method=mtgm, verbose=verbose,
-                print_summary=print_summary)
+        dda = DeepDrillingAlgorithm(grp, to,
+                                    male_term_generation_method=mtgm,
+                                    term_expansion_probability=prob)
+        dda.run(verbose=verbose, print_summary=print_summary)
     elif algorithm == "BEAM":
+        if include_validity_array and not verbose:
+            raise ValueError("The --verbose (-v) option must be set for the "
+                             "--include-validity-array (-iva) option "
+                             "to apply.")
         # run the beam algorithm
         beam = BeamEnumerationAlgorithm(grp, to,
+                                        male_term_generation_method=mtgm,
+                                        max_male_term_length=mmtl,
                                         term_expansion_probability=prob)
-        beam.run(verbose=verbose, print_summary=print_summary)
+        beam.run(verbose=verbose, print_summary=print_summary,
+                 include_validity_array=include_validity_array)
 
 
 if __name__ == '__main__':

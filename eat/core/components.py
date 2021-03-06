@@ -181,6 +181,8 @@ class TermOperation():
         else:
             self.term_variables = get_term_variables(self.groupoid.size)
         self.input = self.get_input_array(size=len(self.term_variables))
+        self.mapped_input = self.get_mapped_input_array(
+            size=len(self.term_variables))
         if target:
             self.target = target
         else:
@@ -197,12 +199,25 @@ class TermOperation():
             )
         return "\n".join(value)
 
+    def get_mapped_input(self, input_row):
+        return self.mapped_input[hash(input_row)]
+
+    def get_mapped_input_array(self, size=None):
+        if size is None:
+            size = self.groupoid.size
+        input_array = self.get_input_array(size)
+        mapped_input = {}
+        for input_row in input_array:
+            mapped_input[hash(input_row)] = \
+                self.get_term_variable_mapping(input_row)
+        return mapped_input
+
     def get_input_array(self, size=None):
         """
-        Returns a list of inputs to the term operation. Each input is a list
+        Returns a list of inputs to the term operation. Each input is a tuple
         of input values for each term variable.
 
-        e.g. [[0,0,0], [0,0,1], [0,0,2], [0,1,0], [0,1,1] ... etc.]
+        e.g. [(0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1) ... etc.]
 
         :type size: int
         :param size: number of possible term elements
@@ -212,7 +227,7 @@ class TermOperation():
         """
         if size is None:
             size = self.groupoid.size
-        return [list(p) for p in itertools.product(
+        return [tuple(p) for p in itertools.product(
                 range(self.groupoid.size),
                 repeat=size)]
 
@@ -389,9 +404,8 @@ class TermOperation():
         :return: computed output array for term
         """
         output = []
-        for input_row in self.input:
+        for term_variables in self.mapped_input.values():
             char_term = term
-            term_variables = self.get_term_variable_mapping(input_row)
             for var, val in term_variables.items():
                 char_term = char_term.replace(var, str(val))
             out = self.solve(char_term)
@@ -405,27 +419,43 @@ class TermOperation():
         """
 
         def is_target_full(target):
-            for input_val in range(0, self.groupoid.size):
-                if input_val not in target:
-                    return False
-            else:
+            if len(target) >= self.groupoid.size:
                 return True
+            else:
+                return False
+
+        def split_female_term(f_term):
+            """
+            Splits a female term and returns the side that the "F" was on and
+            the male subterm
+            """
+            if f_term[-1] == "*":
+                f_term = f_term[:-1]
+            parts = f_term.split("F")
+            if parts[0] == "":
+                return "left", parts[1]
+            else:
+                return "right", parts[0]
 
         has_var_sol = True
         variable_sol = [[] for _ in range(0, len(solution_array))]
-        for idx, input_row in enumerate(self.input):
+        side, subterm = split_female_term(female_term)
+        for idx, term_variables_mapping in \
+                enumerate(self.mapped_input.values()):
             if is_target_full(solution_array[idx]):
                 variable_sol[idx] = solution_array[idx]
             else:
-                term = female_term
-                term_variables_mapping = \
-                    self.get_term_variable_mapping(input_row)
+                term = subterm
                 for var, val in term_variables_mapping.items():
                     term = term.replace(var, str(val))
+                # solve the right or left of the term first only one time
+                subterm_sol = self.solve(term)
                 # see if one of the input values provides a solution
                 for input_val in range(0, self.groupoid.size):
-                    test_term = term.replace("F", str(input_val))
-                    sol = self.solve(test_term)
+                    if side == "left":
+                        sol = self.groupoid.get_value(input_val, subterm_sol)
+                    elif side == "right":
+                        sol = self.groupoid.get_value(subterm_sol, input_val)
                     if sol in solution_array[idx]:
                         variable_sol[idx].append(input_val)
                 if len(variable_sol[idx]) == 0:
@@ -439,27 +469,32 @@ class ValidTermGenerator():
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
-    def gamblers_ruin_algorithm(self, prob=0.5):
+    def gamblers_ruin_algorithm(self, prob=0.3, max_male_term_length=None):
         """
         Generate a random term using the gamblers ruin algorithm
 
         :type prop: float
         :param prob: Probability of growing the size of a random term
         """
-        substitutions = ["EE*", "I"]
+        substitutions = ("EE*", "I")
         term = "E"
-        # randomly build an arbitrarily long term
+        term_length = 0
+        # randomly build a term
         while("E" in term):
             rand = uniform(0, 1)
             if rand < prob:
                 index = 0
+                term_length += 1
             else:
                 index = 1
+            if (max_male_term_length is not None and
+                    term_length >= max_male_term_length):
+                term = term.replace("E", "I")
+                break
             term = term.replace("E", substitutions[index], 1)
         # randomly replace operands
         while("I" in term):
-            rand = (0 + (int)(uniform(0, 1)*len(self.term_variables)))
-            term = term.replace("I", self.term_variables[rand], 1)
+            term = term.replace("I", choice(self.term_variables), 1)
         return term
 
     def random_12_terms(self):
