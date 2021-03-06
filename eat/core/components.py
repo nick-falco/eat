@@ -200,9 +200,22 @@ class TermOperation():
         return "\n".join(value)
 
     def get_mapped_input(self, input_row):
+        """
+        Given a input tuple return its variable mapping
+        """
         return self.mapped_input[hash(input_row)]
 
     def get_mapped_input_array(self, size=None):
+        """
+        Returns a dictionary where the key is the has of the input tuple
+        and the value is the variabled mapping dictionary for that input tuple.
+
+        e.g. {<hash>(0,0,0): {"x": 0, "y": 0, "z": 0},
+              <hash>(0,0,1): {"x": 0, "y": 0, "z": 1},
+              <hash>(0,0,2): {"x": 0, "y": 0, "z": 2},
+              <hash>(0,1,0): {"x": 0, "y": 1, "z": 0},
+              etc.}
+        """
         if size is None:
             size = self.groupoid.size
         input_array = self.get_input_array(size)
@@ -280,7 +293,7 @@ class TermOperation():
             raise ValueError("Specified a target free count ({}) greater than "
                              "the length of the target array ({})."
                              .format(target_free_count, len(target)))
-        for idx, row in enumerate(target):
+        for idx, _ in enumerate(target):
             if idx < target_free_count:
                 target[idx] = list(range(0, self.groupoid.size))
         return target
@@ -516,30 +529,3 @@ class ValidTermGenerator():
             return self.random_12_terms(**kwargs)
         else:
             raise ValueError("Unkown algorithm {}.")
-
-
-class Term():
-
-    def __init__(self):
-        pass
-
-
-if __name__ == '__main__':
-
-    grp = Groupoid(3)
-    grp.data = grp.list_to_groupoid_data([2, 1, 2,
-                                          1, 0, 0,
-                                          0, 0, 1])
-    print("")
-    print(grp)
-    print("")
-    to = TermOperation(grp, random_target=True)
-    print(to)
-    term = "ab*ca**"
-    solution = to.solve(term)
-    print("")
-    print("solution = %s" % solution)
-    print("")
-    vtg = ValidTermGenerator(to.term_variables)
-    print(vtg.generate())
-    print("")
