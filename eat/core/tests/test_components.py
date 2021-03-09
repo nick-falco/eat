@@ -52,6 +52,11 @@ class TestTermOperation(unittest.TestCase):
         self.assertNotEqual(to.compute("xy*z*yz**"), to.target)
 
     def test_solve(self):
+        grp = Groupoid(data=[1, 1, 2,
+                             0, 2, 0,
+                             0, 2, 1])
+        to = TermOperation(grp, term_variables=["x", "y", "z"])
+        self.assertEqual(to.solve("000**"), 1)
         grp = Groupoid(data=[2, 1, 2,
                              1, 0, 0,
                              0, 0, 1])

@@ -1,6 +1,8 @@
 from eat.core.components import ValidTermGenerator
 from eat.core.utilities import get_all_one_and_two_variable_terms, \
     print_search_summary
+import queue
+import multiprocessing as mp
 import logging
 import time
 
@@ -16,8 +18,9 @@ class Node():
 class BeamEnumerationAlgorithm():
 
     def __init__(self, groupoid, term_operation, max_male_term_length=None,
-                 term_expansion_probability=0.3,
-                 male_term_generation_method="random"):
+                 term_expansion_probability=0.5,
+                 male_term_generation_method="random", beam_width=3,
+                 beam_timeout=None):
         self.grp = groupoid
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
@@ -27,7 +30,17 @@ class BeamEnumerationAlgorithm():
         self.term_expansion_probability = term_expansion_probability
         self.max_male_term_length = max_male_term_length
         self.male_term_generation_method = male_term_generation_method
-        self.logger = logging.getLogger(__name__)
+        self.beam_width = beam_width
+        self.beam_timeout = beam_timeout
+        try:
+            mp.set_start_method('fork', force=True)
+        except RuntimeError:
+            pass
+        except AttributeError:
+            logging.warning("Unable to configure how subprocesses are initialized. "
+                            "This could cause slower performance on some systems. "
+                            "It is recommended that you use python3.")
+            pass
 
     def get_male_term(self, generation_method="random"):
         if generation_method == "random":
@@ -67,7 +80,7 @@ class BeamEnumerationAlgorithm():
             # we couldn't find a valid female term
             return None
 
-    def continuously_search_for_valid_female_node(self, curr_fnode):
+    def continuously_search_for_valid_female_node(self, mp_queue, curr_fnode):
         """
         Continuously searches for a valid female node
         """
@@ -87,7 +100,8 @@ class BeamEnumerationAlgorithm():
             fnode = self.try_to_create_valid_female_node(random_term,
                                                          curr_fnode)
             if fnode:
-                return fnode
+                mp_queue.put_nowait(fnode)
+                return
 
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
@@ -99,26 +113,71 @@ class BeamEnumerationAlgorithm():
     def run(self, verbose=False, print_summary=False,
             include_validity_array=False):
         sol_node = None
-        curr_fnode = Node("F", self.to.target, None)
-        level = 1
+        height = 0
+        # initialize beam at height 0
+        f_node = Node("F", self.to.target, None)
+        beam_nodes = [[f_node for _ in range(0, self.beam_width)]]
 
         start = time.time()
         while(True):
+            mp_queue = mp.Queue()
             if verbose:
                 if include_validity_array:
-                    print(str(level), str(curr_fnode.term),
-                          str(curr_fnode.array), str(time.time() - start))
-                else:
-                    print(str(level), str(curr_fnode.term),
+                    print(str(height),
+                          [(fnode.term, fnode.array)
+                           for fnode in beam_nodes[height]],
                           str(time.time() - start))
-            sol_node = self.check_if_has_male_term_solution(curr_fnode)
+                else:
+                    print(str(height),
+                          [(fnode.term)
+                           for fnode in beam_nodes[height]],
+                          str(time.time() - start))
+            
+            for f_node in beam_nodes[height]:
+                sol_node = self.check_if_has_male_term_solution(f_node)
+                if sol_node:
+                    break
+            else:
+                beam_nodes.append([]) # add a height to the beam (height+1)
+                procs = []
+                for f_node in beam_nodes[height]:
+                    # start a process for each of the nodes at the current
+                    # beam height
+                    proc = mp.Process(
+                        target=
+                        self.continuously_search_for_valid_female_node,
+                        args=(mp_queue, f_node, ))
+                    proc.start()
+                    procs.append(proc)
+                start_beam_search = time.time()
+                while len(beam_nodes[height+1]) < self.beam_width:
+                    if (self.beam_timeout and beam_nodes[height+1] and 
+                        (time.time() - start_beam_search) >=
+                         self.beam_timeout):
+                        # lets give up and try to keep moving up the beam
+                        break
+                    try:
+                        f_node_sol = mp_queue.get_nowait()
+                        if f_node_sol:
+                            if f_node_sol.term not in \
+                                    [t.term for t in beam_nodes[height+1]]:
+                                beam_nodes[height+1].append(f_node_sol)
+                            if len(beam_nodes[height+1]) < self.beam_width:
+                                proc = mp.Process(
+                                    target=
+                                    self.continuously_search_for_valid_female_node, #noqa
+                                    args=(mp_queue, f_node_sol.parent_node, ))
+                                proc.start()
+                                procs.append(proc)
+                    except queue.Empty:
+                        pass
+                # kill any remaining processes
+                for proc in procs:
+                    proc.terminate()
+            mp_queue.close()
             if sol_node:
                 break
-            else:
-                fnode = \
-                    self.continuously_search_for_valid_female_node(curr_fnode)
-                curr_fnode = fnode
-            level = level + 1
+            height = height + 1
         node = sol_node
 
         while(node.parent_node is not None):
