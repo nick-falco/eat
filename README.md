@@ -30,7 +30,7 @@ yx****yyyxz*xyxxyz**zz*x*yz****xzyyyyzyxy**zy**y*x**xz********yyxx*y*yxxz*xxxyzy
 *xxz*x**y*y****yzzx*xxz*z*zz****************************************
 ```
 
-To view a the help text displaying all options, run `eat -h`.
+To view a the help text displaying all options, run `eat -h` or `eat --help`.
 
 <h4>Examples</h4>
 
@@ -118,6 +118,30 @@ and a ternary descriminator target operation:
 run:
 ```
 eat -a DDA --groupoid 1 3 1 2 1 2 2 3 2 0 0 3 2 2 1 2 --target-ternary-descriminator
+```
+
+<b>9.)</b> Find a term using the BEAM algorithm with
+
+3 element primal groupoid:
+
+| * | 0 | 1 | 2 |
+|---|---|---|---|
+| 0 | 2 | 1 | 2 |
+| 1 | 1 | 0 | 0 |
+| 2 | 0 | 0 | 1 |
+
+and a ternary descriminator target operation:
+
+run:
+```
+eat -a BEAM --groupoid 2 1 2 1 0 0 0 0 1 --target-ternary-descriminator
+```
+
+<b>10.)</b> Same as example 9 but with a beam width of 3 and a beam timeout of 0.03 seconds
+
+run:
+```
+eat -a BEAM --groupoid 2 1 2 1 0 0 0 0 1 --target-ternary-descriminator --beam-width 3 --beam-timeout 0.03
 ```
 
 <h4>References</h4>
