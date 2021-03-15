@@ -45,15 +45,15 @@ def parse_argments():
                         nargs='+', type=str, default=["x", "y", "z"])
     vtg_group = parser.add_argument_group('Valid term generator options')
     vtg_group.add_argument('-mtgm', '--male-term-generation-method',
-                           choices=["random", "random-12-terms"],
+                           choices=["GRA", "random-12-terms"],
                            help=("Method to use for generating male terms. "
-                                 "Choose from 'random' and 'random-12-terms'. "
-                                 "The 'random' option randomly creates a male "
+                                 "Choose from 'GRA' and 'random-12-terms'. "
+                                 "The 'GRA' option randomly creates a male "
                                  "term using the Gamblers Ruin Algorithm. The "
                                  "'random-12-terms' method randomly selects a "
                                  "term from the set of 12 one and two variable "
                                  "terms. (default='random')"),
-                           default="random")
+                           default="GRA")
     vtg_group.add_argument('-mmtl', '--max-male-term-length',
                            help=("Maximum length of a randomly generated "
                                  "term. (default=None)"),
@@ -87,6 +87,37 @@ def parse_argments():
                             help=("Whether to include validity array in "
                                  "verbose log output (default=False)"),
                            action='store_true')
+    beam_group.add_argument('-nict', '--number-initial-candidate-terms',
+                            type=int,
+                            help=("The number of initial candidate terms for "
+                                  "creating high fit male terms at height 1. "
+                                  "(default=<same as --number-candidate-"
+                                  "terms>)"),
+                            default=None)
+    beam_group.add_argument('-nct', '--number-candidate-terms', type=int,
+                            help=("The number of candidate terms for creating "
+                                  "high fit male terms at heights above "
+                                  "height 1. (default=300)"),
+                            default=300)
+    beam_group.add_argument('-ivtc', '--ignore-valid-term-count',
+                            help=("If set ignores enforcing that a beam "
+                                  "height must be full to continue. For "
+                                  "example, if the --beam-width is set to 3, "
+                                  "normally the program will only continue "
+                                  "if there are 3 valid terms found at a given"
+                                  "height. This settings ignores that "
+                                  "restriction, continuing if any number of"
+                                  "valid terms are found."),
+                            action='store_true')
+    beam_group.add_argument("-scbf", '--sort-candidates-by-fitness',
+                            help=("Sort candidate male terms by their "
+                                  "computed fitness and try to create valid "
+                                  "female terms starting with high fitness to "
+                                  "low fitness. Be default, fitness isn’t "
+                                  "calculated and all candidate male terms "
+                                  "are checked in the order that they were "
+                                  "generated."),
+                            action='store_true')
     
 
     return parser.parse_args()
@@ -125,6 +156,12 @@ def main():
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
     beam_timeout = args.beam_timeout
+    ivtc = args.ignore_valid_term_count
+    nict = args.number_initial_candidate_terms
+    scbf = args.sort_candidates_by_fitness
+    nct = args.number_candidate_terms
+    if nict is None:
+        nict = nct
 
     prob = args.probability
     algorithm = args.algorithm
@@ -156,7 +193,11 @@ def main():
                                         max_male_term_length=mmtl,
                                         term_expansion_probability=prob,
                                         beam_width=beam_width,
-                                        beam_timeout=beam_timeout)
+                                        beam_timeout=beam_timeout,
+                                        number_initial_candidate_terms=nict,
+                                        number_candidate_terms=nct,
+                                        ignore_valid_term_count=ivtc,
+                                        sort_candidates_by_fitness=scbf)
         beam.run(verbose=verbose, print_summary=print_summary,
                  include_validity_array=include_validity_array)
 

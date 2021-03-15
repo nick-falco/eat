@@ -1,7 +1,7 @@
 <h3 align="center">Evolution of Algebraic Terms</h3>
 
 <p>
-EAT is software implementation of the algorithms described in papers Evolution of Algebraic Terms (EAT) [1][2][3]. Given an arbitrary performance specification, the program systematically designs a digital ciruit using binary logic on groupoids of size 3 or larger. The program's success is documented by its ability to consistently find such designs from an incredibly vast search space in fractions of
+EAT is software implementation of the algorithms described in papers Evolution of Algebraic Terms (EAT) [1][2][3]. Given an arbitrary performance specification, the program systematically designs a digital circuit using binary logic on groupoids of size 3 or larger. The program's success is documented by its ability to consistently find such designs from an incredibly vast search space in fractions of
 a second. It has applications in both the fields of Mathematics and Computer Engineering.
 </p>
 
