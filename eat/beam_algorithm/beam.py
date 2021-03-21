@@ -5,14 +5,38 @@ import queue
 import multiprocessing as mp
 import logging
 import time
+import uuid
 
 
 class Node():
 
-    def __init__(self, term, array, parent):
+    def __init__(self, term, array, parent, height):
         self.term = term
         self.array = array
         self.parent_node = parent
+        self.height = height
+        self.proc_hash = None
+
+
+class BeamProccess():
+
+    def __init__(self):
+        self.proc = None
+        self.hash = uuid.uuid4()
+        self.child_nodes = []
+    
+    def run(self, target, args=None):
+        if args is None:
+            args = ()
+        self.proc = mp.Process(target=target, args=args)
+        self.proc.start()
+
+    def terminate(self):
+        self.proc.terminate()
+
+    def restart(self):
+       self.hash = uuid.uuid4()
+       self.child_nodes = []
 
 
 class BeamEnumerationAlgorithm():
@@ -75,12 +99,13 @@ class BeamEnumerationAlgorithm():
                 self.to.compute_validity_array(new_female_term,
                                                curr_fnode.array)
             if has_var_sol:
-                return Node(new_female_term, var_sol, curr_fnode)
+                return Node(new_female_term, var_sol, curr_fnode,
+                            curr_fnode.height+1)
         else:
             # we couldn't find a valid female term
             return None
 
-    def continuously_search_for_valid_female_node(self, mp_queue, curr_fnode):
+    def search_for_valid_female_node(self, mp_queue, proc_hash, curr_fnode):
         """
         Continuously searches for a valid female node
         """
@@ -100,6 +125,7 @@ class BeamEnumerationAlgorithm():
             fnode = self.try_to_create_valid_female_node(random_term,
                                                          curr_fnode)
             if fnode:
+                fnode.proc_hash = proc_hash
                 mp_queue.put_nowait(fnode)
                 return
 
@@ -108,14 +134,14 @@ class BeamEnumerationAlgorithm():
             male_term_sol = self.to.compute(mt)
             if(self.to.is_solution(male_term_sol, curr_fnode.array)):
                 # found a solution
-                return Node(mt, male_term_sol, curr_fnode)
+                return Node(mt, male_term_sol, curr_fnode, curr_fnode.height+1)
 
     def run(self, verbose=False, print_summary=False,
             include_validity_array=False):
         sol_node = None
         height = 0
         # initialize beam at height 0
-        f_node = Node("F", self.to.target, None)
+        f_node = Node("F", self.to.target, None, height)
         beam_nodes = [[f_node for _ in range(0, self.beam_width)]]
 
         start = time.time()
@@ -139,16 +165,17 @@ class BeamEnumerationAlgorithm():
                     break
             else:
                 beam_nodes.append([]) # add a height to the beam (height+1)
-                procs = []
+                proc_map = {}
                 for f_node in beam_nodes[height]:
                     # start a process for each of the nodes at the current
                     # beam height
-                    proc = mp.Process(
-                        target=
-                        self.continuously_search_for_valid_female_node,
-                        args=(mp_queue, f_node, ))
-                    proc.start()
-                    procs.append(proc)
+                    bp = BeamProccess()
+                    f_node.proc_hash = bp.hash
+                    bp.run(target=self.search_for_valid_female_node,
+                           args=(mp_queue,
+                                 bp.hash,
+                                 f_node))
+                    proc_map[bp.hash] = bp
                 start_beam_search = time.time()
                 while len(beam_nodes[height+1]) < self.beam_width:
                     if (self.beam_timeout and beam_nodes[height+1] and 
@@ -162,17 +189,58 @@ class BeamEnumerationAlgorithm():
                             if f_node_sol.term not in \
                                     [t.term for t in beam_nodes[height+1]]:
                                 beam_nodes[height+1].append(f_node_sol)
-                            if len(beam_nodes[height+1]) < self.beam_width:
-                                proc = mp.Process(
+                                bp = proc_map[f_node_sol.parent_node.proc_hash]
+                                bp.child_nodes.append(f_node_sol)
+                            procs_to_promote = \
+                                [proc for proc in proc_map.values()
+                                 if len(proc.child_nodes) == 2]
+                            if procs_to_promote:
+                                # Terminate productive solution nodes parent
+                                # process and dedicate to a node a level H+1
+                                promote_proc = procs_to_promote[0]
+                                print("PROMOTE = %s" % promote_proc.hash)
+                                promote_proc.terminate()
+                                child_nodes = promote_proc.child_nodes
+                                promote_proc.restart()
+                                child_nodes[0].proc_hash = promote_proc.hash
+                                promote_proc.run(
                                     target=
-                                    self.continuously_search_for_valid_female_node, #noqa
-                                    args=(mp_queue, f_node_sol.parent_node, ))
-                                proc.start()
-                                procs.append(proc)
+                                    self.search_for_valid_female_node,
+                                    args=(mp_queue,
+                                          promote_proc.hash,
+                                          child_nodes[0]))
+                                # Terminate an unproductive process and 
+                                # dedicate to a node at level H+1 
+                                slow_process = \
+                                    [proc for proc in proc_map.values() 
+                                     if not proc.child_nodes][0]
+                                slow_process.terminate()
+                                slow_process.restart()
+                                child_nodes[1].proc_hash = slow_process.hash
+                                slow_process.run(
+                                    target=
+                                    self.search_for_valid_female_node,
+                                    args=(mp_queue,
+                                          slow_process.hash,
+                                          child_nodes[1]))
+                                proc_map[slow_process.hash] = slow_process
+                            else:
+                                # Create a new process dedicated to the
+                                # solution node's parent
+                                if len(beam_nodes[height+1]) < self.beam_width:
+                                    bp = proc_map[
+                                        f_node_sol.parent_node.proc_hash]
+                                    bp.run(
+                                        target=
+                                        self.search_for_valid_female_node,
+                                        args=(mp_queue,
+                                              bp.hash,
+                                              f_node_sol.parent_node))
+                                    f_node_sol.parent_node.proc = bp
                     except queue.Empty:
                         pass
                 # kill any remaining processes
-                for proc in procs:
+                for proc in proc_map.values():
                     proc.terminate()
             mp_queue.close()
             if sol_node:
