@@ -1,12 +1,39 @@
 from eat.core.components import ValidTermGenerator
 from eat.core.utilities import get_all_one_and_two_variable_terms, \
     print_search_summary
+from operator import attrgetter
 import queue
 import multiprocessing as mp
 import logging
 import time
 import uuid
 
+
+class Beam():
+
+    def __init__(self, width):
+        self.width = width
+        self.levels = []
+    
+    def add_level(self, nodes_list):
+        self.levels.append(nodes_list)
+
+    def add_to_level(self, level, node):
+        self.levels[level].append(node)
+
+    def get_level(self, level):
+        return self.levels[level]
+    
+    def get_level_size(self, level):
+        return len(self.get_level(level))
+
+    def get_height(self):
+        return len(self.levels)
+
+    def get_highest_full_level(self):
+        for idx, level in enumerate(reversed(self.levels)):
+            if len(level) == self.width:
+                return self.get_height() - idx - 1
 
 class Node():
 
@@ -18,17 +45,52 @@ class Node():
         self.proc_hash = None
 
 
-class BeamProccess():
+class BeamProcessManager():
+
+    def __init__(self):
+        self.proc_map = {}
+
+    def set_process(self, proc_hash, proc):
+        self.proc_map[proc_hash] = proc
+
+    def get_process(self, proc_hash):
+        return self.proc_map[proc_hash]
+
+    def get_processes(self):
+        return self.proc_map.values()
+
+    def get_processes_to_promote(self):
+        return [proc for proc in self.get_processes()
+                if len(proc.child_nodes) == 2]
+
+    def get_processes_without_children(self):
+        return [proc for proc in self.get_processes()
+                if not proc.child_nodes]
+
+    def get_lowest_level_processes(self):
+        min_hight = self.get_lowest_process_level()
+        return [proc for proc in self.get_processes()
+                if proc.height == min_hight]
+
+    def get_lowest_process_level(self):
+        return min(self.get_processes(), key=attrgetter('height')).height
+
+    def terminate_all(self):
+        for proc in self.get_processes():
+            proc.terminate()
+
+class BeamProcess():
 
     def __init__(self):
         self.proc = None
         self.hash = uuid.uuid4()
         self.child_nodes = []
+        self.height = None
     
-    def run(self, target, args=None):
-        if args is None:
-            args = ()
-        self.proc = mp.Process(target=target, args=args)
+    def run(self, target, queue, beam_hash, node):
+        self.height = node.height
+        self.proc = mp.Process(target=target,
+                               args=(queue, beam_hash, node))
         self.proc.start()
 
     def terminate(self):
@@ -142,7 +204,8 @@ class BeamEnumerationAlgorithm():
         height = 0
         # initialize beam at height 0
         f_node = Node("F", self.to.target, None, height)
-        beam_nodes = [[f_node for _ in range(0, self.beam_width)]]
+        beam = Beam(self.beam_width)
+        beam.add_level([f_node for _ in range(0, self.beam_width)])
 
         start = time.time()
         while(True):
@@ -151,34 +214,34 @@ class BeamEnumerationAlgorithm():
                 if include_validity_array:
                     print(str(height),
                           [(fnode.term, fnode.array)
-                           for fnode in beam_nodes[height]],
+                           for fnode in beam.get_level(height)],
                           str(time.time() - start))
                 else:
                     print(str(height),
                           [(fnode.term)
-                           for fnode in beam_nodes[height]],
+                           for fnode in beam.get_level(height)],
                           str(time.time() - start))
             
-            for f_node in beam_nodes[height]:
+            for f_node in beam.get_level(height):
                 sol_node = self.check_if_has_male_term_solution(f_node)
                 if sol_node:
                     break
             else:
-                beam_nodes.append([]) # add a height to the beam (height+1)
-                proc_map = {}
-                for f_node in beam_nodes[height]:
+                beam.add_level([]) # add a height to the beam (height+1)
+                bpm = BeamProcessManager()
+                for f_node in beam.get_level(height):
                     # start a process for each of the nodes at the current
                     # beam height
-                    bp = BeamProccess()
+                    bp = BeamProcess()
                     f_node.proc_hash = bp.hash
-                    bp.run(target=self.search_for_valid_female_node,
-                           args=(mp_queue,
-                                 bp.hash,
-                                 f_node))
-                    proc_map[bp.hash] = bp
+                    bp.run(self.search_for_valid_female_node,
+                           mp_queue,
+                           bp.hash,
+                           f_node)
+                    bpm.set_process(bp.hash, bp)
                 start_beam_search = time.time()
-                while len(beam_nodes[height+1]) < self.beam_width:
-                    if (self.beam_timeout and beam_nodes[height+1] and 
+                while beam.get_level_size(height+1) < self.beam_width:
+                    if (self.beam_timeout and beam.get_level(height+1) and 
                         (time.time() - start_beam_search) >=
                          self.beam_timeout):
                         # lets give up and try to keep moving up the beam
@@ -187,61 +250,56 @@ class BeamEnumerationAlgorithm():
                         f_node_sol = mp_queue.get_nowait()
                         if f_node_sol:
                             if f_node_sol.term not in \
-                                    [t.term for t in beam_nodes[height+1]]:
-                                beam_nodes[height+1].append(f_node_sol)
-                                bp = proc_map[f_node_sol.parent_node.proc_hash]
+                                    [t.term for t in beam.get_level(height+1)]:
+                                beam.add_to_level(height+1, f_node_sol)
+                                bp = bpm.get_process(
+                                    f_node_sol.parent_node.proc_hash)
                                 bp.child_nodes.append(f_node_sol)
-                            procs_to_promote = \
-                                [proc for proc in proc_map.values()
-                                 if len(proc.child_nodes) == 2]
+                            procs_to_promote = bpm.get_processes_to_promote()
                             if procs_to_promote:
                                 # Terminate productive solution nodes parent
                                 # process and dedicate to a node a level H+1
                                 promote_proc = procs_to_promote[0]
-                                print("PROMOTE = %s" % promote_proc.hash)
                                 promote_proc.terminate()
                                 child_nodes = promote_proc.child_nodes
                                 promote_proc.restart()
                                 child_nodes[0].proc_hash = promote_proc.hash
                                 promote_proc.run(
-                                    target=
                                     self.search_for_valid_female_node,
-                                    args=(mp_queue,
-                                          promote_proc.hash,
-                                          child_nodes[0]))
+                                    mp_queue,
+                                    promote_proc.hash,
+                                    child_nodes[0])
                                 # Terminate an unproductive process and 
                                 # dedicate to a node at level H+1 
                                 slow_process = \
-                                    [proc for proc in proc_map.values() 
-                                     if not proc.child_nodes][0]
+                                    bpm.get_processes_without_children()[0]
                                 slow_process.terminate()
                                 slow_process.restart()
                                 child_nodes[1].proc_hash = slow_process.hash
                                 slow_process.run(
-                                    target=
                                     self.search_for_valid_female_node,
-                                    args=(mp_queue,
-                                          slow_process.hash,
-                                          child_nodes[1]))
-                                proc_map[slow_process.hash] = slow_process
+                                    mp_queue,
+                                    slow_process.hash,
+                                    child_nodes[1])
+                                bpm.set_process(slow_process.hash,
+                                                slow_process)
                             else:
                                 # Create a new process dedicated to the
                                 # solution node's parent
-                                if len(beam_nodes[height+1]) < self.beam_width:
-                                    bp = proc_map[
-                                        f_node_sol.parent_node.proc_hash]
+                                if (beam.get_level_size(height+1) <
+                                        self.beam_width):
+                                    bp = bpm.get_process(
+                                        f_node_sol.parent_node.proc_hash)
                                     bp.run(
-                                        target=
                                         self.search_for_valid_female_node,
-                                        args=(mp_queue,
-                                              bp.hash,
-                                              f_node_sol.parent_node))
+                                        mp_queue,
+                                        bp.hash,
+                                        f_node_sol.parent_node)
                                     f_node_sol.parent_node.proc = bp
                     except queue.Empty:
                         pass
                 # kill any remaining processes
-                for proc in proc_map.values():
-                    proc.terminate()
+                bpm.terminate_all()
             mp_queue.close()
             if sol_node:
                 break
