@@ -73,18 +73,24 @@ class BeamProcessManager():
         return [bp for bp in self.get_processes()
                 if len(bp.child_nodes) == 2]
 
-    def get_processes_without_children(self):
-        return [bp for bp in self.get_processes()
-                if not bp.child_nodes]
+    def get_process_below_height(self, height):
+        processes_below_h = []
+        for bp in self.get_processes():
+            if bp.node.height < height:
+                processes_below_h.append(bp)
+        processes_below_h = sorted(processes_below_h,
+                                   key=lambda bp: 
+                                   (bp.node.height, len(bp.child_nodes)))
+        return processes_below_h
 
     def get_lowest_level_processes(self):
         min_hight = self.get_lowest_process_level_number()
         return [bp for bp in self.get_processes()
-                if bp.height == min_hight]
+                if bp.node.height == min_hight]
 
     def get_lowest_process_level_number(self):
         return min(self.get_processes(),
-                   key=attrgetter('height')).height
+                   key=attrgetter('node.height')).node.height
 
     def terminate_all(self):
         for bp in self.get_processes():
@@ -96,10 +102,10 @@ class BeamProcess():
         self.proc = None
         self.hash = uuid.uuid4()
         self.child_nodes = []
-        self.height = None
+        self.node = None
     
     def run(self, target, queue, node):
-        self.height = node.height
+        self.node = node
         self.proc = mp.Process(target=target,
                                args=(queue, node))
         self.proc.start()
@@ -291,14 +297,16 @@ class BeamEnumerationAlgorithm():
                             child_nodes[0])
                         # Terminate an unproductive process and 
                         # dedicate to a node at level H+1 
-                        unproductive_process = \
-                            bpm.get_processes_without_children()[0]
-                        child_nodes[1].proc_hash = unproductive_process.hash
-                        unproductive_process.reset()
-                        unproductive_process.run(
-                            self.search_for_valid_female_node,
-                            mp_queue,
-                            child_nodes[1])
+                        least_productive_processes = \
+                            bpm.get_process_below_height(f_node_sol.height)
+                        if least_productive_processes:
+                            unproductive_process = least_productive_processes[0]
+                            child_nodes[1].proc_hash = unproductive_process.hash
+                            unproductive_process.reset()
+                            unproductive_process.run(
+                                self.search_for_valid_female_node,
+                                mp_queue,
+                                child_nodes[1])
                     elif (bpm.get_lowest_process_level_number() <
                             beam.get_highest_full_level_number()):
                         # Check if the beam is full at a level above
