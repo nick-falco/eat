@@ -124,18 +124,20 @@ class BeamProcess():
 
 class BeamEnumerationAlgorithm():
 
-    def __init__(self, groupoid, term_operation, max_male_term_length=None,
-                 term_expansion_probability=0.5,
+    def __init__(self, groupoid, term_operation, min_term_length=None,
+                 max_term_length=None, term_expansion_probability=0.5,
                  male_term_generation_method="random", beam_width=3,
                  beam_timeout=None):
         self.grp = groupoid
         self.to = term_operation
+        self.beam = Beam(beam_width)
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self.validity_terms = \
             get_all_one_and_two_variable_terms(self.to.term_variables)
         self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
-        self.max_male_term_length = max_male_term_length
+        self.min_term_length = min_term_length
+        self.max_term_length = max_term_length
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
         self.beam_timeout = beam_timeout
@@ -149,11 +151,12 @@ class BeamEnumerationAlgorithm():
                             "It is recommended that you use python3.")
             pass
 
-    def get_male_term(self, generation_method="random"):
-        if generation_method == "random":
+    def get_male_term(self, generation_method="GRA"):
+        if generation_method == "GRA":
             return self.vtg.generate(
                 algorithm="GRA",
-                max_male_term_length=self.max_male_term_length,
+                min_term_length=self.min_term_length,
+                max_term_length=self.max_term_length,
                 prob=self.term_expansion_probability)
         elif generation_method == "random-12-terms":
             return self.vtg.generate(algorithm="random-12-terms")
@@ -224,14 +227,13 @@ class BeamEnumerationAlgorithm():
         height = 0
         # initialize beam at height 0
         f_node = Node("F", self.to.target, None, height)
-        beam = Beam(self.beam_width)
-        beam.add_level([f_node for _ in range(0, self.beam_width)])
+        self.beam.add_level([f_node for _ in range(0, self.beam_width)])
 
         start = time.time()
         mp_queue = mp.Queue()
 
         bpm = BeamProcessManager()
-        for f_node in beam.get_level(height):
+        for f_node in self.beam.get_level(height):
             # start a process for each of the nodes at the current
             # beam height
             bp = BeamProcess()
@@ -246,18 +248,18 @@ class BeamEnumerationAlgorithm():
                 f_node_sol = mp_queue.get_nowait()
 
                 # If we reach here we found a valid female term
-                if not beam.get_level(f_node_sol.height):
+                if not self.beam.get_level(f_node_sol.height):
                     # Grow the beam
-                    beam.add_level()
+                    self.beam.add_level()
 
                 if (verbose):
                     #### PRINT HIGHEST BEAM LEVEL
                     if self.beam_width > 1:
                         highest_level = \
                             [bn.term for bn in 
-                             beam.get_level(beam.get_height()-1)]
+                             self.beam.get_level(self.beam.get_height()-1)]
                         if highest_level:
-                            print(beam.get_height()-1,
+                            print(self.beam.get_height()-1,
                                   f_node_sol.term,
                                   highest_level,
                                   "DUPLICATE SOLUTION!"
@@ -267,7 +269,7 @@ class BeamEnumerationAlgorithm():
                                   else ""
                             )
                     else:
-                        print(beam.get_height()-1,
+                        print(self.beam.get_height()-1,
                               [f_node_sol.term],
                               f_node_sol.array if include_validity_array
                               else "")
@@ -279,8 +281,9 @@ class BeamEnumerationAlgorithm():
                     f_node_sol_proc = \
                         bpm.get_process(f_node_sol.parent_node.proc_hash)
                     if f_node_sol.term not in \
-                            [t.term for t in beam.get_level(f_node_sol.height)]:
-                        beam.add_node(f_node_sol)
+                            [t.term for t in
+                             self.beam.get_level(f_node_sol.height)]:
+                        self.beam.add_node(f_node_sol)
                         f_node_sol_proc.child_nodes.append(f_node_sol)
                     # Check if the valid female terms parent has
                     # produced sufficient children for promotion
@@ -308,11 +311,11 @@ class BeamEnumerationAlgorithm():
                                 mp_queue,
                                 child_nodes[1])
                     elif (bpm.get_lowest_process_level_number() <
-                            beam.get_highest_full_level_number()):
+                            self.beam.get_highest_full_level_number()):
                         # Check if the beam is full at a level above
                         # the lowest working process
                         lowest_processes = bpm.get_lowest_level_processes()
-                        full_level_f_nodes = beam.get_highest_full_level()
+                        full_level_f_nodes = self.beam.get_highest_full_level()
                         for bp in lowest_processes:
                             for f_node in full_level_f_nodes:
                                 if bpm.get_process(f_node.proc_hash) is None or \

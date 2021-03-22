@@ -1,6 +1,7 @@
 import itertools
 import math
 from random import choice, uniform
+from collections import OrderedDict 
 from eat.core.utilities import subset_sums, get_term_variables, \
     get_all_one_and_two_variable_terms
 
@@ -219,7 +220,7 @@ class TermOperation():
         if size is None:
             size = self.groupoid.size
         input_array = self.get_input_array(size)
-        mapped_input = {}
+        mapped_input = OrderedDict()
         for input_row in input_array:
             mapped_input[hash(input_row)] = \
                 self.get_term_variable_mapping(input_row)
@@ -263,7 +264,7 @@ class TermOperation():
 
     def get_ternary_descriminator_target_array(self):
         """
-        Returns target solution of length 27, representing the ternary
+        Returns target solution, representing the ternary
         descriminator:
 
         d(a, b, c) := {c if a == b; a if a != b}
@@ -327,7 +328,7 @@ class TermOperation():
 
         e.g.
 
-         * 0 1 2 
+         * 0 1 2
          0 2 1 2
          1 1 0 0
          2 0 0 1
@@ -365,6 +366,27 @@ class TermOperation():
                         r_array[row_idx].append(grp_col)
         return r_array
 
+    def calculate_term_fitness(self, term, target_array):
+        """
+        Returns fitness of term with respect to output array
+        """
+        term_array = self.compute(term)
+        return self.calculate_array_fitness(term_array, target_array)
+
+    def calculate_array_fitness(self, input_array, target_array):
+        """
+        Returns fitness of input_array with respect to output array
+        """
+        fitness = 0
+        for idx, val_array in enumerate(input_array):
+            sol = False
+            for val in val_array:
+                if val in target_array[idx]:
+                    sol = True
+            if sol:
+                fitness = fitness + 1
+        return fitness
+
     def is_solution(self, input_array, target_array):
         """
         Checks if input_array is a solution to the target_array.
@@ -374,15 +396,8 @@ class TermOperation():
         :type target_array: list
         :param target_array: target solution array
         """
-        count = 0
-        for idx, val_array in enumerate(input_array):
-            sol = False
-            for val in val_array:
-                if val in target_array[idx]:
-                    sol = True
-            if sol:
-                count = count + 1
-        if count == len(target_array):
+        fitness = self.calculate_array_fitness(input_array, target_array)
+        if fitness == len(target_array):
             return True
         else:
             return False
@@ -450,13 +465,13 @@ class TermOperation():
             else:
                 return "right", parts[0]
 
-        has_var_sol = True
-        variable_sol = [[] for _ in range(0, len(solution_array))]
+        has_validity_array = True
+        validity_array = [[] for _ in range(0, len(solution_array))]
         side, subterm = split_female_term(female_term)
         for idx, term_variables_mapping in \
                 enumerate(self.mapped_input.values()):
             if is_target_full(solution_array[idx]):
-                variable_sol[idx] = solution_array[idx]
+                validity_array[idx] = solution_array[idx]
             else:
                 term = subterm
                 for var, val in term_variables_mapping.items():
@@ -470,11 +485,11 @@ class TermOperation():
                     elif side == "right":
                         sol = self.groupoid.get_value(subterm_sol, input_val)
                     if sol in solution_array[idx]:
-                        variable_sol[idx].append(input_val)
-                if len(variable_sol[idx]) == 0:
-                    has_var_sol = False
+                        validity_array[idx].append(input_val)
+                if len(validity_array[idx]) == 0:
+                    has_validity_array = False
                     break
-        return has_var_sol, variable_sol
+        return has_validity_array, validity_array
 
 
 class ValidTermGenerator():
@@ -482,12 +497,16 @@ class ValidTermGenerator():
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
-    def gamblers_ruin_algorithm(self, prob=0.3, max_male_term_length=None):
+    def gamblers_ruin_algorithm(self, prob=0.3,
+                                min_term_length=1,
+                                max_term_length=None):
         """
         Generate a random term using the gamblers ruin algorithm
 
         :type prop: float
         :param prob: Probability of growing the size of a random term
+        :type max_term_length: int
+        :param max_term_length: Maximum length of the generated term
         """
         substitutions = ("EE*", "I")
         term = "E"
@@ -495,13 +514,13 @@ class ValidTermGenerator():
         # randomly build a term
         while("E" in term):
             rand = uniform(0, 1)
-            if rand < prob:
+            if rand < prob or term_length < min_term_length:
                 index = 0
                 term_length += 1
             else:
                 index = 1
-            if (max_male_term_length is not None and
-                    term_length >= max_male_term_length):
+            if (max_term_length is not None and
+                    term_length >= max_term_length):
                 term = term.replace("E", "I")
                 break
             term = term.replace("E", substitutions[index], 1)
@@ -529,3 +548,16 @@ class ValidTermGenerator():
             return self.random_12_terms(**kwargs)
         else:
             raise ValueError("Unkown algorithm {}.")
+
+    def generate_list(self, number_male_terms, algorithm="GRA", **kwargs):
+        male_terms = {}
+        count = 0
+        while count < number_male_terms:
+            random_term = self.generate(algorithm=algorithm, **kwargs)
+            if not male_terms.get(random_term):
+                male_terms[random_term] = random_term
+                count += 1
+            else:
+                # we already found this term
+                continue
+        return list(male_terms.values())

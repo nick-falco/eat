@@ -45,16 +45,20 @@ def parse_argments():
                         nargs='+', type=str, default=["x", "y", "z"])
     vtg_group = parser.add_argument_group('Valid term generator options')
     vtg_group.add_argument('-mtgm', '--male-term-generation-method',
-                           choices=["random", "random-12-terms"],
+                           choices=["GRA", "random-12-terms"],
                            help=("Method to use for generating male terms. "
-                                 "Choose from 'random' and 'random-12-terms'. "
-                                 "The 'random' option randomly creates a male "
+                                 "Choose from 'GRA' and 'random-12-terms'. "
+                                 "The 'GRA' option randomly creates a male "
                                  "term using the Gamblers Ruin Algorithm. The "
                                  "'random-12-terms' method randomly selects a "
                                  "term from the set of 12 one and two variable "
-                                 "terms. (default='random')"),
-                           default="random")
-    vtg_group.add_argument('-mmtl', '--max-male-term-length',
+                                 "terms. (default='GRA')"),
+                           default="GRA")
+    vtg_group.add_argument('-mintl', '--min-term-length',
+                           help=("Minimum length of a randomly generated "
+                                 "term. (default=None)"),
+                           type=int, default=1),
+    vtg_group.add_argument('-maxtl', '--max-term-length',
                            help=("Maximum length of a randomly generated "
                                  "term. (default=None)"),
                            type=int, default=None),
@@ -116,7 +120,8 @@ def main():
                                                args.target_free_count)
 
     mtgm = args.male_term_generation_method
-    mmtl = args.max_male_term_length
+    mintl = args.min_term_length
+    maxtl = args.max_term_length
 
     verbose = args.verbose
     print_summary = args.print_summary
@@ -153,7 +158,8 @@ def main():
         # run the beam algorithm
         beam = BeamEnumerationAlgorithm(grp, to,
                                         male_term_generation_method=mtgm,
-                                        max_male_term_length=mmtl,
+                                        min_term_length=mintl,
+                                        max_term_length=maxtl,
                                         term_expansion_probability=prob,
                                         beam_width=beam_width,
                                         beam_timeout=beam_timeout)

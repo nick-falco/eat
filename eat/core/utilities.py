@@ -35,7 +35,6 @@ def get_all_one_and_two_variable_terms(term_variables):
                 combinations.append("{}*".format(combination))
     return combinations
 
-
 def postfix_to_infix(exp):
 
     def is_operand(x):
@@ -51,6 +50,19 @@ def postfix_to_infix(exp):
             operator2 = stack.pop()
             stack.append("(" + operator2 + exp[j] + operator1 + ")")
     return stack.pop()
+
+
+def split_male_term(term):
+    count = 0
+    term_len = len(term)
+    for i in range(term_len-1, 0, -1):
+        c = term[i]
+        if c == "*":
+            count += 1
+        else:
+            count -= 1
+        if count == 0:
+            return term[0:i], term[i:term_len-1]
 
 
 def combine_postfix(term1, term2):

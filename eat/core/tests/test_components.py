@@ -46,9 +46,10 @@ class TestTermOperation(unittest.TestCase):
                            term_variables=["x", "y", "z"])
         to.target = to.get_ternary_descriminator_target_array()
         sol = to.compute(
-            "yzz**yy**zyy**yxz*xzzy**zyy*yyy********yz*xz*z*xxzz**xzzxzx*y**x*"
-            "*x**xy***z****x**zx***y***xxz**y*yz**x**")
-        self.assertEqual(sol, to.target)
+            "zzxy**yy***zyy*zz*xz*xz**zyz**zy*yx***yz***zxz***xy*y***zz***zz*y"
+            "**y*zy***x**")
+        for i in range(0, len(to.target)):
+            self.assertEqual(sol[i], to.target[i])
         self.assertNotEqual(to.compute("xy*z*yz**"), to.target)
 
     def test_solve(self):
@@ -72,16 +73,16 @@ class TestTermOperation(unittest.TestCase):
                              0, 2, 1])
         to = TermOperation(grp, term_variables=["x", "y", "z"])
         has_validity_array, validity_array = to.compute_validity_array(
-            "zz*yy**F*",
+            "yxy**xx**F*",
             [[0], [1], [2], [0], [0], [0], [0], [0], [0], [1], [1], [1], [0],
              [1], [2], [1], [1], [1], [2], [2], [2], [2], [2], [2], [0], [1],
              [2]])
         self.assertTrue(has_validity_array)
         self.assertEqual(
             validity_array,
-            [[0, 2], [0, 1], [1], [0], [0], [0], [0], [0], [0], [2], [2], [2],
-             [0], [2], [1], [2], [2], [2], [2], [1], [2], [2], [2], [1],
-             [0, 2], [0, 1], [1]])
+            [[0], [2], [1], [0], [0], [0], [0], [0], [0], [0, 1], [0, 1],
+             [0, 1], [0], [2], [1], [2], [2], [2], [1], [1], [1], [1], [1],
+             [1], [0], [2], [1]])
 
 
 class TestValidTermGenerator(unittest.TestCase):
