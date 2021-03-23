@@ -202,17 +202,21 @@ class BeamEnumerationAlgorithm():
         next_level = self.beam.get_level(curr_fnode.height+1)
         if next_level:
             exclude = {f_node.term for f_node in next_level}
+        
+        random_terms = set()
         # Continuously search for a new solution
         while(True):
             random_term = self.get_male_term(
                 generation_method=self.male_term_generation_method
             )
-            f_node = self.try_to_create_valid_female_node(random_term,
-                                                         curr_fnode)
-            if f_node:
-                if f_node.term not in exclude:
-                    mp_queue.put_nowait(f_node)
-                    return
+            if random_term not in random_terms:
+                f_node = self.try_to_create_valid_female_node(random_term,
+                                                            curr_fnode)
+                if f_node:
+                    if f_node.term not in exclude:
+                        mp_queue.put_nowait(f_node)
+                        return
+            random_terms.add(random_term)
 
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
