@@ -69,6 +69,10 @@ def combine_postfix(term1, term2):
     return "{}{}*".format(term1, term2)
 
 
+def condensed_array(array, groupoid_size):
+    return [v if len(v) != groupoid_size else "~" for v in array]
+
+
 def print_search_summary(term, term_operation, groupoid, search_time):
     print("Summary:")
     print("--------")
@@ -78,5 +82,7 @@ def print_search_summary(term, term_operation, groupoid, search_time):
     print(term)
     print("Term length  = {}".format(len(term)))
     print("Search time  = {} sec".format(search_time))
-    print("Term array   = {}".format(term_operation.compute(term)))
-    print("Target array = {}".format(term_operation.target))
+    print("Term array   = {}".format(
+          condensed_array(term_operation.compute(term), groupoid.size)))
+    print("Target array = {}".format(
+          condensed_array(term_operation.target, groupoid.size)))

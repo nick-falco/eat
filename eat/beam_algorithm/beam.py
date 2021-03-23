@@ -1,6 +1,6 @@
 from eat.core.components import ValidTermGenerator
 from eat.core.utilities import get_all_one_and_two_variable_terms, \
-    print_search_summary
+    print_search_summary, condensed_array
 from operator import attrgetter
 import queue
 import multiprocessing as mp
@@ -28,7 +28,7 @@ class Beam():
             return self.levels[level]
         else:
             return None
-    
+
     def get_level_size(self, level):
         return len(self.get_level(level))
 
@@ -151,15 +151,16 @@ class BeamEnumerationAlgorithm():
                             "It is recommended that you use python3.")
             pass
 
-    def get_male_term(self, generation_method="GRA"):
+    def get_male_term(self, generation_method="GRA", **kwargs):
         if generation_method == "GRA":
             return self.vtg.generate(
                 algorithm="GRA",
                 min_term_length=self.min_term_length,
                 max_term_length=self.max_term_length,
-                prob=self.term_expansion_probability)
+                prob=self.term_expansion_probability,
+                **kwargs)
         elif generation_method == "random-12-terms":
-            return self.vtg.generate(algorithm="random-12-terms")
+            return self.vtg.generate(algorithm="random-12-terms", **kwargs)
 
     def create_female_term(self, male_term, direction):
         """
@@ -195,24 +196,23 @@ class BeamEnumerationAlgorithm():
         """
         Continuously searches for a valid female node
         """
-        # first we check for new valid female terms using the standard
-        # set of validity terms
-        '''for validity_term in self.validity_terms:
-            fnode = self.try_to_create_valid_female_node(validity_term,
-                                                         curr_fnode)
-            if fnode:
-                return fnode'''
-        # if no validity terms produce valid female term, we continue
-        # to try random terms
+        # Exclude solutions that we know have already been found when we start
+        # a new search process
+        exclude = {}
+        next_level = self.beam.get_level(curr_fnode.height+1)
+        if next_level:
+            exclude = {f_node.term for f_node in next_level}
+        # Continuously search for a new solution
         while(True):
             random_term = self.get_male_term(
                 generation_method=self.male_term_generation_method
             )
-            fnode = self.try_to_create_valid_female_node(random_term,
+            f_node = self.try_to_create_valid_female_node(random_term,
                                                          curr_fnode)
-            if fnode:
-                mp_queue.put_nowait(fnode)
-                return
+            if f_node:
+                if f_node.term not in exclude:
+                    mp_queue.put_nowait(f_node)
+                    return
 
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
@@ -253,26 +253,25 @@ class BeamEnumerationAlgorithm():
                     self.beam.add_level()
 
                 if (verbose):
-                    #### PRINT HIGHEST BEAM LEVEL
                     if self.beam_width > 1:
-                        highest_level = \
-                            [bn.term for bn in 
-                             self.beam.get_level(self.beam.get_height()-1)]
-                        if highest_level:
-                            print(self.beam.get_height()-1,
+                        f_node_sol_level = [bn.term for bn in 
+                            self.beam.get_level(f_node_sol.height)]
+                        if f_node_sol_level:
+                            print(f_node_sol.height,
                                   f_node_sol.term,
-                                  highest_level,
-                                  "DUPLICATE SOLUTION!"
-                                  if f_node_sol.term in highest_level
+                                  f_node_sol_level,
+                                  "DUPLICATE SOLUTION"
+                                  if f_node_sol.term in f_node_sol_level
                                   else "",
-                                  f_node_sol.array if include_validity_array
-                                  else ""
-                            )
+                                  condensed_array(f_node_sol.array,
+                                                  self.grp.size)
+                                  if include_validity_array else "")
                     else:
-                        print(self.beam.get_height()-1,
+                        print(f_node_sol.height,
                               [f_node_sol.term],
-                              f_node_sol.array if include_validity_array
-                              else "")
+                              condensed_array(f_node_sol.array,
+                                              self.grp.size)
+                              if include_validity_array else "")
 
                 sol_node = self.check_if_has_male_term_solution(f_node_sol)
                 if sol_node:
