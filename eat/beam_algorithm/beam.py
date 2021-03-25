@@ -127,7 +127,7 @@ class BeamEnumerationAlgorithm():
     def __init__(self, groupoid, term_operation, min_term_length=None,
                  max_term_length=None, term_expansion_probability=0.5,
                  male_term_generation_method="random", beam_width=3,
-                 beam_timeout=None):
+                 promotion_child_count=2):
         self.grp = groupoid
         self.to = term_operation
         self.beam = Beam(beam_width)
@@ -140,7 +140,7 @@ class BeamEnumerationAlgorithm():
         self.max_term_length = max_term_length
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
-        self.beam_timeout = beam_timeout
+        self.promotion_child_count = promotion_child_count
         try:
             mp.set_start_method('fork', force=True)
         except RuntimeError:
@@ -291,8 +291,10 @@ class BeamEnumerationAlgorithm():
                         f_node_sol_proc.child_nodes.append(f_node_sol)
                     # Check if the valid female terms parent has
                     # produced sufficient children for promotion
-                    if len(f_node_sol_proc.child_nodes) == 2:
-                        reassignment_reason = "TWO-CHILDREN"
+                    if (len(f_node_sol_proc.child_nodes) ==
+                            self.promotion_child_count):
+                        reassignment_reason = \
+                            "{}-CHILDREN".format(self.promotion_child_count)
                         # Terminate productive solution nodes parent
                         # process and dedicate to a node a level H+1
                         child_nodes = f_node_sol_proc.child_nodes
@@ -304,17 +306,27 @@ class BeamEnumerationAlgorithm():
                             mp_queue,
                             child_nodes[0])
                         # Terminate an unproductive process and 
-                        # dedicate to a node at level H+1 
-                        least_productive_processes = \
-                            bpm.get_process_below_height(f_node_sol.height)
-                        if least_productive_processes:
-                            unproductive_process = least_productive_processes[0]
-                            child_nodes[1].proc_hash = unproductive_process.hash
-                            unproductive_process.reset()
-                            unproductive_process.run(
-                                self.search_for_valid_female_node,
-                                mp_queue,
-                                child_nodes[1])
+                        # dedicate to a node at level H+1
+                        if len(child_nodes) > 1:
+                            least_productive_processes = \
+                                bpm.get_process_below_height(f_node_sol.height)
+                            reassigned_proc_count = 0
+                            if least_productive_processes:
+                                for unproductive_process in \
+                                        least_productive_processes:
+                                    next_child = child_nodes[
+                                        reassigned_proc_count+1]
+                                    next_child.proc_hash = \
+                                            unproductive_process.hash
+                                    unproductive_process.reset()
+                                    unproductive_process.run(
+                                        self.search_for_valid_female_node,
+                                        mp_queue,
+                                        next_child)
+                                    reassigned_proc_count += 1
+                                    if reassigned_proc_count == \
+                                            self.promotion_child_count - 1:
+                                        break
                     elif (bpm.get_lowest_process_level_number() <
                             self.beam.get_highest_full_level_number()):
                         reassignment_reason = "FULL-LEVEL"
@@ -322,16 +334,16 @@ class BeamEnumerationAlgorithm():
                         # the lowest working process
                         lowest_processes = bpm.get_lowest_level_processes()
                         full_level_f_nodes = self.beam.get_highest_full_level()
+                        # kill all lower level processes and move to the
+                        # highest full level
                         for bp in lowest_processes:
                             for f_node in full_level_f_nodes:
-                                if bpm.get_process(f_node.proc_hash) is None or \
-                                   not bpm.get_process(f_node.proc_hash).is_alive():
-                                    f_node.proc_hash = bp.hash
-                                    bp.reset()
-                                    bp.run(
-                                        self.search_for_valid_female_node,
-                                        mp_queue,
-                                        f_node)
+                                f_node.proc_hash = bp.hash
+                                bp.reset()
+                                bp.run(
+                                    self.search_for_valid_female_node,
+                                    mp_queue,
+                                    f_node)
                     else:
                         reassignment_reason = "NO-PROCESS-REASSIGNMENT"
                         # Create a new process dedicated to the

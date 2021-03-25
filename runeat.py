@@ -9,12 +9,20 @@ def restricted_float(x):
         x = float(x)
     except ValueError:
         raise argparse.ArgumentTypeError(
-                "%r not a floating-point literal" % (x,))
+                "%r is not a floating-point literal" % (x,))
 
     if x < 0.0 or x > 1.0:
         raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]"
                                          .format(x))
     return x
+
+
+def non_negative_integer(value):
+    ivalue = int(value)
+    if ivalue < 0:
+        raise argparse.ArgumentTypeError(
+            "{} is not a positive int literal".format(value))
+    return ivalue
 
 
 def parse_argments():
@@ -26,7 +34,8 @@ def parse_argments():
                         type=str, default="DDA", choices=["DDA", "BEAM"])
     parser.add_argument('-g', '--groupoid',
                         help="Gropoid operation matrix",
-                        nargs='+', type=int,
+                        nargs='+',
+                        type=non_negative_integer,
                         default=[1, 1, 2, 0, 2, 0, 0, 2, 1])
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-tdt', '--target-ternary-descriminator',
@@ -39,7 +48,9 @@ def parse_argments():
                        nargs='+', type=str)
     parser.add_argument('-tfc', '--target_free_count',
                         help=("Number of target values to force to accept any "
-                              "input value (default=0)"), type=int, default=0)
+                              "input value (default=0)"),
+                        type=non_negative_integer,
+                        default=0)
     parser.add_argument('-tv', '--term-variables',
                         help="Term variables to use. (default=['x','y',z'])",
                         nargs='+', type=str, default=["x", "y", "z"])
@@ -57,11 +68,11 @@ def parse_argments():
     vtg_group.add_argument('-mintl', '--min-term-length',
                            help=("Minimum length of a randomly generated "
                                  "term. (default=None)"),
-                           type=int, default=1),
+                           type=non_negative_integer, default=1),
     vtg_group.add_argument('-maxtl', '--max-term-length',
                            help=("Maximum length of a randomly generated "
                                  "term. (default=None)"),
-                           type=int, default=None),
+                           type=non_negative_integer, default=None),
     vtg_group.add_argument('-p', '--probability',
                            help=("For random term generation specify the "
                                  "probability of growing the random term. "
@@ -76,21 +87,19 @@ def parse_argments():
                                  "(default=False)"),
                            action='store_true')
     beam_group = parser.add_argument_group('Beam algorithm only options')
-    beam_group.add_argument('-bw', '--beam-width', type=int,
+    beam_group.add_argument('-bw', '--beam-width',
+                            type=non_negative_integer,
                             help=("Width of the beam (default=1)"),
-                            default=None)
-    beam_group.add_argument('-bto', '--beam-timeout', type=float,
-                            help=("The maximum amount of time (sec) to spend "
-                                  "searching for all nodes at a specific "
-                                  "beam height. After this time, the program "
-                                  "will continue to search until it has at "
-                                  "least one valid female term at the current "
-                                  "beam height. (default=None)"),
                             default=None)
     beam_group.add_argument('-iva', '--include-validity-array',
                             help=("Whether to include validity array in "
                                  "verbose log output (default=False)"),
                            action='store_true')
+    beam_group.add_argument('-pcc', '--promotion_child_count',
+                           help=("The number of child terms required to "
+                                 "promote a proccess before a higher beam "
+                                 "level is full."),
+                           type=non_negative_integer, default=2),
     
 
     return parser.parse_args()
@@ -129,7 +138,7 @@ def main():
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
-    beam_timeout = args.beam_timeout
+    promotion_child_count = args.promotion_child_count
 
     prob = args.probability
     algorithm = args.algorithm
@@ -140,9 +149,9 @@ def main():
         elif beam_width:
             raise ValueError("The --beam-width (-bw) option only applies to "
                              "the BEAM algorithm.")
-        elif beam_timeout:
-            raise ValueError("The --beam-timeout (-bto) option only applies to "
-                             "the BEAM algorithm.")
+        elif promotion_child_count:
+            raise ValueError("The --promotion_child_count (-pcc) option only "
+                             "applies to the BEAM algorithm.")
         # run the deep drilling algorithm
         dda = DeepDrillingAlgorithm(grp, to,
                                     male_term_generation_method=mtgm,
@@ -155,14 +164,20 @@ def main():
                              "to apply.")
         if beam_width is None:
             beam_width = 1
+        if promotion_child_count > beam_width:
+            raise ValueError("The --promotion_child_count (-pcc) value must "
+                             "less than or equal to the beam width.")
+
         # run the beam algorithm
-        beam = BeamEnumerationAlgorithm(grp, to,
+        beam = BeamEnumerationAlgorithm(grp,
+                                        to,
                                         male_term_generation_method=mtgm,
                                         min_term_length=mintl,
                                         max_term_length=maxtl,
                                         term_expansion_probability=prob,
                                         beam_width=beam_width,
-                                        beam_timeout=beam_timeout)
+                                        promotion_child_count=
+                                        promotion_child_count)
         beam.run(verbose=verbose, print_summary=print_summary,
                  include_validity_array=include_validity_array)
 
