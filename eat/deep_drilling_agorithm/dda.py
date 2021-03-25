@@ -69,8 +69,8 @@ class DeepDrillingAlgorithm():
         k = int(parts[-1])
         return k
 
-    def get_male_term(self, generation_method="random"):
-        if generation_method == "random":
+    def get_male_term(self, generation_method="GRA"):
+        if generation_method == "GRA":
             return self.vtg.generate(algorithm="GRA",
                                      prob=self.term_expansion_probability)
         elif generation_method == "random-12-terms":

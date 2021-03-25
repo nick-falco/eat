@@ -1,6 +1,6 @@
 from eat.core.components import ValidTermGenerator
 from eat.core.utilities import get_all_one_and_two_variable_terms, \
-    print_search_summary
+    print_search_summary, condensed_array
 import queue
 import multiprocessing as mp
 import logging
@@ -17,8 +17,8 @@ class Node():
 
 class BeamEnumerationAlgorithm():
 
-    def __init__(self, groupoid, term_operation, max_male_term_length=None,
-                 term_expansion_probability=0.5,
+    def __init__(self, groupoid, term_operation, min_term_length=None,
+                 max_term_length=None, term_expansion_probability=0.5,
                  male_term_generation_method="random", beam_width=3,
                  beam_timeout=None):
         self.grp = groupoid
@@ -28,7 +28,8 @@ class BeamEnumerationAlgorithm():
             get_all_one_and_two_variable_terms(self.to.term_variables)
         self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
-        self.max_male_term_length = max_male_term_length
+        self.min_term_length = min_term_length
+        self.max_term_length = max_term_length
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
         self.beam_timeout = beam_timeout
@@ -42,11 +43,12 @@ class BeamEnumerationAlgorithm():
                             "It is recommended that you use python3.")
             pass
 
-    def get_male_term(self, generation_method="random"):
-        if generation_method == "random":
+    def get_male_term(self, generation_method="GRA"):
+        if generation_method == "GRA":
             return self.vtg.generate(
                 algorithm="GRA",
-                max_male_term_length=self.max_male_term_length,
+                min_term_length=self.min_term_length,
+                max_term_length=self.max_term_length,
                 prob=self.term_expansion_probability)
         elif generation_method == "random-12-terms":
             return self.vtg.generate(algorithm="random-12-terms")
@@ -80,7 +82,7 @@ class BeamEnumerationAlgorithm():
             # we couldn't find a valid female term
             return None
 
-    def continuously_search_for_valid_female_node(self, mp_queue, curr_fnode):
+    def search_for_valid_female_node(self, mp_queue, curr_fnode):
         """
         Continuously searches for a valid female node
         """
@@ -124,7 +126,8 @@ class BeamEnumerationAlgorithm():
             if verbose:
                 if include_validity_array:
                     print(str(height),
-                          [(fnode.term, fnode.array)
+                          [(fnode.term,
+                            condensed_array(fnode.array, self.grp.size))
                            for fnode in beam_nodes[height]],
                           str(time.time() - start))
                 else:
@@ -145,7 +148,7 @@ class BeamEnumerationAlgorithm():
                     # beam height
                     proc = mp.Process(
                         target=
-                        self.continuously_search_for_valid_female_node,
+                        self.search_for_valid_female_node,
                         args=(mp_queue, f_node, ))
                     proc.start()
                     procs.append(proc)
@@ -165,7 +168,7 @@ class BeamEnumerationAlgorithm():
                             if len(beam_nodes[height+1]) < self.beam_width:
                                 proc = mp.Process(
                                     target=
-                                    self.continuously_search_for_valid_female_node, #noqa
+                                    self.search_for_valid_female_node,
                                     args=(mp_queue, f_node_sol.parent_node, ))
                                 proc.start()
                                 procs.append(proc)
