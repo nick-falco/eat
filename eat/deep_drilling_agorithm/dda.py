@@ -158,7 +158,7 @@ class DeepDrillingAlgorithm():
         if (verbose):
             print(dda)
             print("")
-        if (print_summary):
+        if (print_summary or verbose):
             print_search_summary(s.label, self.to, self.grp, end - start)
         else:
             print(s.label)

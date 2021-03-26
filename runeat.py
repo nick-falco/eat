@@ -89,17 +89,17 @@ def parse_argments():
     beam_group = parser.add_argument_group('Beam algorithm only options')
     beam_group.add_argument('-bw', '--beam-width',
                             type=non_negative_integer,
-                            help=("Width of the beam (default=1)"),
+                            help=("Width of the beam (default=3)"),
                             default=None)
     beam_group.add_argument('-iva', '--include-validity-array',
                             help=("Whether to include validity array in "
                                  "verbose log output (default=False)"),
                            action='store_true')
-    beam_group.add_argument('-pcc', '--promotion_child_count',
+    beam_group.add_argument('-pcc', '--promotion-child-count',
                            help=("The number of child terms required to "
                                  "promote a proccess before a higher beam "
-                                 "level is full."),
-                           type=non_negative_integer, default=2),
+                                 "level is full (default=2)"),
+                           type=non_negative_integer, default=None),
     
 
     return parser.parse_args()
@@ -163,7 +163,9 @@ def main():
                              "--include-validity-array (-iva) option "
                              "to apply.")
         if beam_width is None:
-            beam_width = 1
+            beam_width = 3
+        if promotion_child_count is None:
+            promotion_child_count = 2
         if promotion_child_count > beam_width:
             raise ValueError("The --promotion_child_count (-pcc) value must "
                              "less than or equal to the beam width.")

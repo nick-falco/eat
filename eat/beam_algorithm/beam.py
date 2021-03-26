@@ -240,7 +240,7 @@ class BeamEnumerationAlgorithm():
         for idx, f_node in enumerate(self.beam.get_level(height)):
             # start a process for each of the nodes at the current
             # beam height
-            bp = BeamProcess("Process_{}".format(idx))
+            bp = BeamProcess("P{}".format(idx))
             bpm.add_process(bp)
             f_node.proc_hash = bp.hash
             bp.run(self.search_for_valid_female_node,
@@ -260,24 +260,36 @@ class BeamEnumerationAlgorithm():
                     if self.beam_width > 1:
                         f_node_sol_level = [bn.term for bn in 
                             self.beam.get_level(f_node_sol.height)]
-                        print(f_node_sol.height,
-                              f_node_sol.term,
-                              f_node_sol_level,
-                              f_node_sol.parent_node.proc_hash,
-                              "DUPLICATE SOLUTION"
-                              if f_node_sol.term in f_node_sol_level
-                              else "",
-                              condensed_array(f_node_sol.array,
-                                              self.grp.size)
-                              if include_validity_array else "")
+                        print("{} found {}valid term {} at level {} {}"
+                              .format(
+                                f_node_sol.parent_node.proc_hash,
+                                ("duplicate "
+                                 if f_node_sol.term in f_node_sol_level
+                                 else ""),
+                                f_node_sol.term,
+                                f_node_sol.height,
+                                ("with array {}"
+                                 .format(condensed_array(f_node_sol.array,
+                                                         self.grp.size))
+                                 if include_validity_array else "")
+                              ))
                     else:
+                        print("{} found valid term {} at level {} {}"
+                              .format(
+                                f_node_sol.parent_node.proc_hash,
+                                f_node_sol.term,
+                                f_node_sol.height,
+                                ("with array {}"
+                                 .format(condensed_array(f_node_sol.array,
+                                                         self.grp.size))
+                                 if include_validity_array else "")
+                              ))
                         print(f_node_sol.height,
                               [f_node_sol.term],
                               condensed_array(f_node_sol.array,
                                               self.grp.size)
                               if include_validity_array else "")
 
-                reassignment_reason = None
                 sol_node = self.check_if_has_male_term_solution(f_node_sol)
                 if sol_node:
                     break
@@ -293,8 +305,6 @@ class BeamEnumerationAlgorithm():
                     # produced sufficient children for promotion
                     if (len(f_node_sol_proc.child_nodes) ==
                             self.promotion_child_count):
-                        reassignment_reason = \
-                            "{}-CHILDREN".format(self.promotion_child_count)
                         # Terminate productive solution nodes parent
                         # process and dedicate to a node a level H+1
                         child_nodes = f_node_sol_proc.child_nodes
@@ -307,6 +317,7 @@ class BeamEnumerationAlgorithm():
                             child_nodes[0])
                         # Terminate an unproductive process and 
                         # dedicate to a node at level H+1
+                        least_productive_processes = []
                         if len(child_nodes) > 1:
                             least_productive_processes = \
                                 bpm.get_process_below_height(f_node_sol.height)
@@ -327,9 +338,19 @@ class BeamEnumerationAlgorithm():
                                     if reassigned_proc_count == \
                                             self.promotion_child_count - 1:
                                         break
+                        if verbose:
+                            promoted_procs = [f_node_sol_proc] + \
+                                least_productive_processes
+                            print("{}-CHILDREN - Promoted {} since {} found "
+                                  "{} children"
+                                  .format(self.promotion_child_count,
+                                          ["{}_{}"
+                                           .format(bp.hash, bp.node.height)
+                                           for bp in promoted_procs],
+                                          f_node_sol_proc.hash,
+                                          self.promotion_child_count))
                     elif (bpm.get_lowest_process_level_number() <
                             self.beam.get_highest_full_level_number()):
-                        reassignment_reason = "FULL-LEVEL"
                         # Check if the beam is full at a level above
                         # the lowest working process
                         lowest_processes = bpm.get_lowest_level_processes()
@@ -344,8 +365,16 @@ class BeamEnumerationAlgorithm():
                                     self.search_for_valid_female_node,
                                     mp_queue,
                                     f_node)
+                        if verbose:
+                            highest_full_beam_level = \
+                                self.beam.get_highest_full_level_number()
+                            print("FULL-ROW-{} - Promoted {} to level {} since "
+                                  "beam level {} was filled."
+                                  .format(highest_full_beam_level,
+                                          [bp.hash for bp in lowest_processes],
+                                          highest_full_beam_level,
+                                          highest_full_beam_level))
                     else:
-                        reassignment_reason = "NO-PROCESS-REASSIGNMENT"
                         # Create a new process dedicated to the
                         # solution node's parent
                         f_node_sol_proc.run(
@@ -354,9 +383,10 @@ class BeamEnumerationAlgorithm():
                             f_node_sol.parent_node)
                         f_node_sol.parent_node.proc = bp
                 if verbose:
-                    print(reassignment_reason,
-                          [(bp.hash, bp.node.height, len(bp.child_nodes))
-                           for bp in bpm.get_processes()])
+                    print("(pid,lvl,chldn): {}".format(
+                          [(bp.hash, bp.node.height,
+                            len(bp.child_nodes))
+                           for bp in bpm.get_processes()]))
             except queue.Empty:
                 pass
         # kill any remaining processes
@@ -371,7 +401,7 @@ class BeamEnumerationAlgorithm():
             node = node.parent_node
         end = time.time()
 
-        if (print_summary):
+        if (print_summary or verbose):
             print_search_summary(node.term, self.to, self.grp, end - start)
         else:
             print(node.term)
