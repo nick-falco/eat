@@ -1,3 +1,4 @@
+import os
 import argparse
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
@@ -26,9 +27,17 @@ def non_negative_integer(value):
 
 
 def parse_argments():
+    version_path = 'eat/VERSION'
+    VERSION = open(os.path.join(os.path.dirname(__file__), version_path)).read()
+    VERSION = VERSION.replace("\n", "")
+
     parser = argparse.ArgumentParser(
-        description=('Implementation of Evolution of Algebraic Terms (EAT)')
+        description=("Implementation of Evolution of Algebraic Terms (EAT {})"
+                     .format(VERSION))
     )
+    parser.add_argument('--version',
+                        action='version',
+                        version=VERSION)
     parser.add_argument('-a', '--algorithm',
                         help="EAT algorithm to run. (default='DDA')",
                         type=str, default="DDA", choices=["DDA", "BEAM"])
