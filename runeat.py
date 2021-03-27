@@ -1,5 +1,6 @@
 import os
 import argparse
+import platform
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
@@ -30,6 +31,11 @@ def parse_argments():
     version_path = 'eat/VERSION'
     VERSION = open(os.path.join(os.path.dirname(__file__), version_path)).read()
     VERSION = VERSION.replace("\n", "")
+
+    if platform.python_version() < "3.0.0":
+        raise RuntimeError("Python 3 is required. You ran this script with "
+                           "python version {}"
+                           .format(platform.python_version()))
 
     parser = argparse.ArgumentParser(
         description=("Implementation of Evolution of Algebraic Terms (EAT {})"
