@@ -4,30 +4,10 @@ import platform
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
+from eat.utilities.argparse_types import non_negative_integer, restricted_float
 
 
-def restricted_float(x):
-    try:
-        x = float(x)
-    except ValueError:
-        raise argparse.ArgumentTypeError(
-                "%r is not a floating-point literal" % (x,))
-
-    if x < 0.0 or x > 1.0:
-        raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]"
-                                         .format(x))
-    return x
-
-
-def non_negative_integer(value):
-    ivalue = int(value)
-    if ivalue < 0:
-        raise argparse.ArgumentTypeError(
-            "{} is not a positive int literal".format(value))
-    return ivalue
-
-
-def parse_argments():
+def parse_arguments():
     version_path = 'eat/VERSION'
     VERSION = open(os.path.join(os.path.dirname(__file__), version_path)).read()
     VERSION = VERSION.replace("\n", "")
@@ -115,13 +95,12 @@ def parse_argments():
                                  "promote a proccess before a higher beam "
                                  "level is full (default=2)"),
                            type=non_negative_integer, default=None),
-    
 
     return parser.parse_args()
 
 
 def main():
-    args = parse_argments()
+    args = parse_arguments()
     # create groupoid table
     grp = Groupoid(args.groupoid)
 
