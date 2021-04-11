@@ -350,7 +350,39 @@ class TermOperation():
                         break  # continue to check next row of groupoid
         return l_array
 
-    def r_array(self, term_output, sol_output):
+    def r_array(self, term_output):
+        """
+        Returns an array containing the column indexes of the groupoid that
+        contain a value matching the target output at a given index.
+
+        RA(x, y, z) = {d E G | g * d E A(x, y, z) forsome g E G}:
+
+        e.g.
+
+         * 0 1 2
+         0 2 1 2
+         1 1 0 0
+         2 0 0 1
+
+         l_array([[0], [1], [0], [2]])
+         >>> [[0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 2]]
+
+         Because
+         [0] is found at gropuoid rows [0], [1] and [2]
+         [1] is found at groupoid rows [0], [1] and [2]
+         [2] is found at groupoid rows [0] and [2]
+        """
+        r_array = [[] for _ in range(0, len(term_output))]
+        for row_idx, term_row in enumerate(term_output):
+            for grp_row in range(0, self.groupoid.size):
+                for grp_col in range(0, self.groupoid.size):
+                    if self.groupoid.get_value(grp_row, grp_col) in term_row:
+                        if grp_col not in r_array[row_idx]:
+                            r_array[row_idx].append(grp_col)
+            r_array[row_idx] = sorted(r_array[row_idx])
+        return r_array
+
+    def r_of_l_array(self, term_output, sol_output):
         """
         Given a term's output array and a left array returns a new right array,
         where for each value in the term's output array "term_val" the

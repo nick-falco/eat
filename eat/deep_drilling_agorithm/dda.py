@@ -134,8 +134,8 @@ class DeepDrillingAlgorithm():
                     new_row.N = N
                     new_row.n = m + 1
                     new_row.label = "B{}".format(n)
-                    r_array = self.to.r_array(last_row.array,
-                                              A.array)
+                    r_array = self.to.r_of_l_array(last_row.array,
+                                                   A.array)
                     new_row.array = r_array
                     new_row.m = m + 1
                     pds.append(m + 1)  # push m+1 onto stack
