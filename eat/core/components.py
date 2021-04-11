@@ -1,7 +1,7 @@
 import itertools
 import math
 from random import choice, uniform
-from collections import OrderedDict 
+from collections import OrderedDict
 from eat.core.utilities import subset_sums, get_term_variables, \
     get_all_one_and_two_variable_terms
 

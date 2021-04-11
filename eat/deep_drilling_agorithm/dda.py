@@ -22,7 +22,7 @@ class DDA_Table():
 
     def __init__(self):
         self.table = []
-    
+
     def __str__(self):
         s = []
         s.append("%s\t%s\t%10s\t%60s\t%5s" % ("N", "n", "Label", "Array", "m"))

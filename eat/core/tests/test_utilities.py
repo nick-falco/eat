@@ -1,6 +1,7 @@
 import unittest
 from eat.core.utilities import split_male_term
 
+
 class TestUtilities(unittest.TestCase):
 
     def test_split_male_term(self):

@@ -19,7 +19,7 @@ class TestTermOperation(unittest.TestCase):
                              0, 0, 1])
         to = TermOperation(grp)
         r_array = to.r_array([[0], [1], [0], [2]])
-        self.assertAlmostEqual(r_array, 
+        self.assertAlmostEqual(r_array,
                                [[0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 2]])
 
     def test_r_of_l_array(self):
@@ -28,7 +28,7 @@ class TestTermOperation(unittest.TestCase):
                              0, 0, 1])
         to = TermOperation(grp)
         r_array = to.r_of_l_array([[0], [1], [0], [2]],
-                                   [[0, 1], [0], [0, 1, 2], [0, 2]])
+                                  [[0, 1], [0], [0, 1, 2], [0, 2]])
         self.assertEqual(r_array, [[1], [1, 2], [0, 1, 2], [0, 1]])
 
         r_array = to.r_of_l_array([[0], [1], [0], [2]],

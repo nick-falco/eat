@@ -8,7 +8,6 @@ import queue
 import multiprocessing as mp
 import logging
 import time
-import uuid
 
 
 class Beam():
@@ -19,7 +18,7 @@ class Beam():
 
     def add_node(self, node):
         self.levels[node.level].append(node)
-    
+
     def add_level(self, nodes_list=None):
         if not nodes_list:
             nodes_list = []
@@ -64,6 +63,7 @@ class Node():
             node = node.parent_node
         return node
 
+
 class BeamProcessManager():
 
     def __init__(self):
@@ -85,7 +85,7 @@ class BeamProcessManager():
             if bp.node.level < level:
                 processes_below_h.append(bp)
         processes_below_h = sorted(processes_below_h,
-                                   key=lambda bp: 
+                                   key=lambda bp:
                                    (bp.node.level, len(bp.child_nodes)))
         return processes_below_h
 
@@ -101,6 +101,7 @@ class BeamProcessManager():
         for bp in self.get_processes():
             bp.reset()
 
+
 class BeamProcess():
 
     def __init__(self, process_hash):
@@ -108,7 +109,7 @@ class BeamProcess():
         self.hash = process_hash
         self.child_nodes = []
         self.node = None
-    
+
     def run(self, target, queue, node, **kwargs):
         self.node = node
         self.proc = mp.Process(target=target,
@@ -153,9 +154,10 @@ class BeamEnumerationAlgorithm():
         except RuntimeError:
             pass
         except AttributeError:
-            logging.warning("Unable to configure how subprocesses are initialized. "
-                            "This could cause slower performance on some systems. "
-                            "It is recommended that you use python3.")
+            logging.warning("Unable to configure how subprocesses are "
+                            "initialized. This could cause slower performance "
+                            "on some systems. It is recommended that you use "
+                            "python3.")
             pass
 
     def get_male_term(self, generation_method="GRA", **kwargs):
@@ -211,7 +213,7 @@ class BeamEnumerationAlgorithm():
         next_level = self.beam.get_level(curr_fnode.level+1)
         if next_level:
             exclude = {f_node.term for f_node in next_level}
-        
+
         random_terms = set()
         # Continuously search for a new solution
         while(True):
@@ -278,12 +280,13 @@ class BeamEnumerationAlgorithm():
                 # found a solution
                 return Node(mt, male_term_sol, curr_fnode, curr_fnode.level+1)
 
-    def _print_verbose_valid_term_log(self, f_node_sol, include_validity_array):
+    def _print_verbose_valid_term_log(self, f_node_sol,
+                                      include_validity_array):
         if self.beam_width > 1:
-            f_node_sol_level = [bn.term for bn in 
-                self.beam.get_level(f_node_sol.level)]
+            f_node_sol_level = [bn.term for bn in
+                                self.beam.get_level(f_node_sol.level)]
             print("{}: Found {}valid term {} at level {} {}"
-                    .format(
+                  .format(
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
                     ("DUPLICATE "
@@ -298,7 +301,7 @@ class BeamEnumerationAlgorithm():
                     ))
         else:
             print("{}: Found valid term {} at level {} {}"
-                    .format(
+                  .format(
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
                     f_node_sol.term,
@@ -307,12 +310,12 @@ class BeamEnumerationAlgorithm():
                         .format(condensed_array(f_node_sol.array,
                                                 self.grp.size))
                         if include_validity_array else "")
-                    ))
+                  ))
             print(f_node_sol.level,
-                    [f_node_sol.term],
-                    condensed_array(f_node_sol.array,
-                                    self.grp.size)
-                    if include_validity_array else "")
+                  [f_node_sol.term],
+                  condensed_array(f_node_sol.array,
+                                  self.grp.size)
+                  if include_validity_array else "")
 
     def run(self, verbose=False, print_summary=False,
             include_validity_array=False):
@@ -395,7 +398,7 @@ class BeamEnumerationAlgorithm():
                             self.search_for_valid_female_node,
                             mp_queue,
                             child_nodes[0])
-                        # Terminate an unproductive process and 
+                        # Terminate an unproductive process and
                         # dedicate to a node at level H+1
                         least_productive_processes = []
                         if len(child_nodes) > 1:
@@ -408,7 +411,7 @@ class BeamEnumerationAlgorithm():
                                     next_child = child_nodes[
                                         reassigned_proc_count+1]
                                     next_child.proc_hash = \
-                                            unproductive_process.hash
+                                        unproductive_process.hash
                                     unproductive_process.reset()
                                     unproductive_process.run(
                                         self.search_for_valid_female_node,
@@ -448,8 +451,8 @@ class BeamEnumerationAlgorithm():
                                     mp_queue,
                                     f_node)
                         if verbose:
-                            print("FULL-ROW-{} - Promoted {} to level {} since "
-                                  "beam level {} was filled"
+                            print("FULL-ROW-{} - Promoted {} to level {} "
+                                  "since beam level {} was filled"
                                   .format(highest_full_level_num,
                                           [bp.hash for bp in lowest_processes],
                                           highest_full_level_num,
@@ -488,5 +491,3 @@ class BeamEnumerationAlgorithm():
         else:
             print(node.term)
         return node
-
-
