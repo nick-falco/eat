@@ -236,6 +236,13 @@ class BeamEnumerationAlgorithm():
         Continuously searches for a valid female node by finding a solution to
         the left or right array
         """
+        # Exclude solutions that we know have already been found when we start
+        # a new search process
+        exclude = {}
+        next_level = self.beam.get_level(curr_fnode.level+1)
+        if next_level:
+            exclude = {f_node.term for f_node in next_level}
+
         target_array = []
         if direction == "left":
             target_array = self.to.l_array(curr_fnode.array)
@@ -268,10 +275,14 @@ class BeamEnumerationAlgorithm():
             raise RuntimeError("A {} array solution was found that is not "
                                "valid! Something went wrong!"
                                .format(direction))
-        return Node(new_female_term,
-                    validity_array,
-                    curr_fnode,
-                    curr_fnode.level+1)
+        f_node = Node(new_female_term,
+                      validity_array,
+                      curr_fnode,
+                      curr_fnode.level+1)
+        if f_node:
+            if f_node.term not in exclude:
+                mp_queue.put_nowait(f_node)
+                return
 
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
@@ -331,22 +342,6 @@ class BeamEnumerationAlgorithm():
         bpm = BeamProcessManager()
 
         lrlc = self.lr_level_count
-        while lrlc > 0:
-            lrlc -= 1
-            f_node_sol = self.search_for_valid_female_node_using_lr_array(
-                mp_queue, f_node,
-                direction=choice(["left", "right"]))
-            self.beam.add_level()
-            if verbose:
-                self._print_verbose_valid_term_log(f_node_sol,
-                                                   include_validity_array)
-            self.beam.add_node(f_node_sol)
-            # if we found a solution there is no reason to keep taking the
-            # left or right array
-            sn = self.check_if_has_male_term_solution(f_node_sol)
-            if sn:
-                break
-            f_node = f_node_sol
 
         for idx, f_node in enumerate(self.beam.get_level(
                                                 self.beam.get_height()-1)):
@@ -354,9 +349,15 @@ class BeamEnumerationAlgorithm():
             bp = BeamProcess("P{}".format(idx))
             bpm.add_process(bp)
             f_node.proc_hash = bp.hash
-            bp.run(self.search_for_valid_female_node,
-                   mp_queue,
-                   f_node)
+            if f_node.level < lrlc:
+                bp.run(self.search_for_valid_female_node_using_lr_array,
+                       mp_queue,
+                       f_node,
+                       direction=choice(["left", "right"]))
+            else:
+                bp.run(self.search_for_valid_female_node,
+                       mp_queue,
+                       f_node)
 
         while(True):
             try:
@@ -394,10 +395,16 @@ class BeamEnumerationAlgorithm():
                         child_nodes[0].proc_hash = \
                             f_node_sol_proc.hash
                         f_node_sol_proc.reset()
-                        f_node_sol_proc.run(
-                            self.search_for_valid_female_node,
-                            mp_queue,
-                            child_nodes[0])
+                        if child_nodes[0].level < lrlc:
+                            bp.run(self.search_for_valid_female_node_using_lr_array,  # noqa
+                                   mp_queue,
+                                   child_nodes[0],
+                                   direction=choice(["left", "right"]))
+                        else:
+                            f_node_sol_proc.run(
+                                self.search_for_valid_female_node,
+                                mp_queue,
+                                child_nodes[0])
                         # Terminate an unproductive process and
                         # dedicate to a node at level H+1
                         least_productive_processes = []
@@ -446,10 +453,17 @@ class BeamEnumerationAlgorithm():
                             for f_node in full_level_f_nodes:
                                 f_node.proc_hash = bp.hash
                                 bp.reset()
-                                bp.run(
-                                    self.search_for_valid_female_node,
-                                    mp_queue,
-                                    f_node)
+                                if f_node.level < lrlc:
+                                    bp.run(
+                                        self.search_for_valid_female_node_using_lr_array,  # noqa
+                                        mp_queue,
+                                        f_node,
+                                        direction=choice(["left", "right"]))
+                                else:
+                                    f_node_sol_proc.run(
+                                        self.search_for_valid_female_node,
+                                        mp_queue,
+                                        f_node)
                         if verbose:
                             print("FULL-ROW-{} - Promoted {} to level {} "
                                   "since beam level {} was filled"
@@ -460,10 +474,17 @@ class BeamEnumerationAlgorithm():
                     else:
                         # Create a new process dedicated to the
                         # solution node's parent
-                        f_node_sol_proc.run(
-                            self.search_for_valid_female_node,
-                            mp_queue,
-                            f_node_sol.parent_node)
+                        if f_node_sol.parent_node.level < lrlc:
+                            f_node_sol_proc.run(
+                                self.search_for_valid_female_node_using_lr_array,  # noqa
+                                mp_queue,
+                                f_node_sol.parent_node,
+                                direction=choice(["left", "right"]))
+                        else:
+                            f_node_sol_proc.run(
+                                self.search_for_valid_female_node,
+                                mp_queue,
+                                f_node_sol.parent_node)
                         f_node_sol.parent_node.proc = bp
                         if verbose:
                             print("CONTINUE - Continue searching with {} for "
