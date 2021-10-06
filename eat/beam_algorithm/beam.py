@@ -54,12 +54,7 @@ class Node():
         self.parent_node = parent
         self.level = level
         self.proc_hash = None
-
-    def get_fitness(self):
-        """
-        Returns the number of possible solutions for the target array
-        """
-        return self.to.calucate_number_pos_sol(self.array)
+        self.fitness = self.to.calucate_number_pos_sol(self.array)
 
     def recurse(self):
         node = copy(self)
@@ -89,7 +84,7 @@ class BeamProcessManager():
     def get_processes_by_decr_fitness(self, level):
         processes = self.get_process_below_level(level)
         processes = sorted(processes,
-                           key=lambda bp: bp.node.get_fitness(),
+                           key=lambda bp: bp.node.fitness,
                            reverse=True)
         return processes
 
@@ -128,6 +123,7 @@ class BeamProcess():
     def run(self, target, queue, node, **kwargs):
         node.proc_hash = self.hash
         self.node = node
+        self.terminate()
         self.proc = mp.Process(target=target,
                                args=(queue, node),
                                kwargs=kwargs)
@@ -244,8 +240,9 @@ class BeamEnumerationAlgorithm():
                                                               curr_fnode)
                 if f_node:
                     if f_node.term not in exclude:
-                        mp_queue.put_nowait(f_node)
-                        return
+                        while(True):
+                            mp_queue.put_nowait(f_node)
+                            return
             random_terms.add(random_term)
 
     def search_for_valid_female_node_using_lr_array(
@@ -324,7 +321,7 @@ class BeamEnumerationAlgorithm():
                         if f_node_sol.term in f_node_sol_level
                         else ""),
                     f_node_sol.term,
-                    f_node_sol.get_fitness(),
+                    f_node_sol.fitness,
                     f_node_sol.level,
                     ("with array {}"
                         .format(condensed_array(f_node_sol.array,
@@ -337,7 +334,7 @@ class BeamEnumerationAlgorithm():
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
                     f_node_sol.term,
-                    f_node_sol.get_fitness(),
+                    f_node_sol.fitness,
                     f_node_sol.level,
                     ("with array {}"
                         .format(condensed_array(f_node_sol.array,
@@ -354,7 +351,8 @@ class BeamEnumerationAlgorithm():
 
         start = time.time()
 
-        mp_queue = mp.Queue()
+        mp_mngr = mp.Manager()
+        mp_queue = mp_mngr.Queue()
 
         bpm = BeamProcessManager()
 
@@ -377,39 +375,88 @@ class BeamEnumerationAlgorithm():
                        f_node)
 
         while(True):
-            try:
-                f_node_sol = mp_queue.get_nowait()
-                f_node_sol_fitness = f_node_sol.get_fitness()
-                f_node_sol_parent_proc = \
-                    bpm.get_process(f_node_sol.parent_node.proc_hash)
+            f_node_sol = mp_queue.get()
+            f_node_sol_fitness = f_node_sol.fitness
+            f_node_sol_parent_proc = \
+                bpm.get_process(f_node_sol.parent_node.proc_hash)
 
-                # If we reach here we found a valid female term of
-                # sufficient fitness
-                if not self.beam.get_level(f_node_sol.level):
-                    # Grow the beam
-                    self.beam.add_level()
-                
+            if f_node_sol_parent_proc.node.level > f_node_sol.level:
                 if verbose:
-                    self._print_verbose_valid_term_log(f_node_sol,
-                                                       include_validity_array)
+                    print(f"Process {f_node_sol_parent_proc.hash} "
+                        f"is running above level {f_node_sol.level} "
+                        f"of the newly found female term. Skipping")
+                continue
 
-                sol_node = self.check_if_has_male_term_solution(f_node_sol)
-                if sol_node:
-                    break
+            # If we reach here we found a valid female term of
+            # sufficient fitness
+            if not self.beam.get_level(f_node_sol.level):
+                # Grow the beam
+                self.beam.add_level()
+            
+            if verbose:
+                self._print_verbose_valid_term_log(f_node_sol,
+                                                include_validity_array)
 
-                procs_by_fitness = bpm.get_processes_by_decr_fitness(
-                    f_node_sol.level)
-                least_fit_bp = procs_by_fitness[-1]
-                least_fit_bp_fitness = least_fit_bp.node.get_fitness()
+            sol_node = self.check_if_has_male_term_solution(f_node_sol)
+            if sol_node:
+                break
 
-                if (f_node_sol_fitness < least_fit_bp_fitness):
-                    # Rerun process for solution node's parent
-                    # and discard f_node_sol
+            procs_by_fitness = bpm.get_processes_by_decr_fitness(
+                f_node_sol.level)
+            if not procs_by_fitness:
+                continue
+            least_fit_bp = procs_by_fitness[-1]
+            least_fit_bp_fitness = least_fit_bp.node.fitness
+
+            if (f_node_sol_fitness < least_fit_bp_fitness):
+                # Rerun process for solution node's parent
+                # and discard f_node_sol
+                if verbose:
+                    print(f"{f_node_sol_parent_proc.hash}: Discard lower "
+                        f"fitness term {f_node_sol.term} and rerun "
+                        f"{f_node_sol_parent_proc.hash} to search for "
+                        f"a new term")
+                if f_node_sol.parent_node.level < lrlc:
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node_using_lr_array,  # noqa
+                        mp_queue,
+                        f_node_sol.parent_node,
+                        direction=choice(["left", "right"]))
+                else:
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node,
+                        mp_queue,
+                        f_node_sol.parent_node)
+            else:
+                # add node to beam and parent process child nodes
+                self.beam.add_node(f_node_sol)
+                f_node_sol_parent_proc.child_nodes.append(f_node_sol)
+                
+                # deactivate the process since it's being reassigned
+                least_fit_bp.deactivate()
+                # reassign least fit beam process to work on newly found
+                # female term
+                if verbose:
+                    print(f"{least_fit_bp.hash}: Reassigned "
+                            f"{least_fit_bp.hash} to work on the newly "
+                            f"found female term {f_node_sol.term}")
+                if f_node_sol.level < lrlc:
+                    least_fit_bp.run(
+                        self.search_for_valid_female_node_using_lr_array,  # noqa
+                        mp_queue,
+                        f_node_sol,
+                        direction=choice(["left", "right"]))
+                else:
+                    least_fit_bp.run(
+                        self.search_for_valid_female_node,
+                        mp_queue,
+                        f_node_sol)
+                if f_node_sol_parent_proc != least_fit_bp:
                     if verbose:
-                        print(f"{f_node_sol_parent_proc.hash}: Discard lower "
-                              f"fitness term {f_node_sol.term} and rerun "
-                              f"{f_node_sol_parent_proc.hash} to search for "
-                              f"a new term")
+                        print(f"{f_node_sol_parent_proc.hash}: Rerun "
+                                f"{f_node_sol_parent_proc.hash} to "
+                                f"search for a new child female term "
+                                f"different than {f_node_sol.term}")
                     if f_node_sol.parent_node.level < lrlc:
                         f_node_sol_parent_proc.run(
                             self.search_for_valid_female_node_using_lr_array,  # noqa
@@ -421,61 +468,16 @@ class BeamEnumerationAlgorithm():
                             self.search_for_valid_female_node,
                             mp_queue,
                             f_node_sol.parent_node)
-                else:
-                    # add node to beam and parent process child nodes
-                    if f_node_sol.term not in \
-                            [t.term for t in
-                                self.beam.get_level(f_node_sol.level)]:
-                        self.beam.add_node(f_node_sol)
-                        f_node_sol_parent_proc.child_nodes.append(f_node_sol)
-                        
-                        # deactivate the process since it's being reassigned
-                        least_fit_bp.deactivate()
-                        # reassign least fit beam process to work on newly found
-                        # female term
-                        if verbose:
-                            print(f"{least_fit_bp.hash}: Reassigned "
-                                  f"{least_fit_bp.hash} to work on the newly "
-                                  f"found female term {f_node_sol.term}")
-                        if f_node_sol.level < lrlc:
-                            least_fit_bp.run(
-                                self.search_for_valid_female_node_using_lr_array,  # noqa
-                                mp_queue,
-                                f_node_sol,
-                                direction=choice(["left", "right"]))
-                        else:
-                            least_fit_bp.run(
-                                self.search_for_valid_female_node,
-                                mp_queue,
-                                f_node_sol)
-                        if f_node_sol_parent_proc.hash != least_fit_bp.hash:
-                            if verbose:
-                                print(f"{f_node_sol_parent_proc.hash}: Rerun "
-                                      f"{f_node_sol_parent_proc.hash} to "
-                                      f"search for a new child female term "
-                                      f"different than {f_node_sol.term}")
-                            if f_node_sol.parent_node.level < lrlc:
-                                f_node_sol_parent_proc.run(
-                                    self.search_for_valid_female_node_using_lr_array,  # noqa
-                                    mp_queue,
-                                    f_node_sol.parent_node,
-                                    direction=choice(["left", "right"]))
-                            else:
-                                f_node_sol_parent_proc.run(
-                                    self.search_for_valid_female_node,
-                                    mp_queue,
-                                    f_node_sol.parent_node)
-                if verbose:
-                    print("(pid,lvl,chldn,is_alive): {}".format(
-                        [(bp.hash, bp.node.level,
-                            len(bp.child_nodes), bp.is_alive())
-                        for bp in bpm.get_processes()]))
-            except queue.Empty:
-                pass
+            if verbose:
+                print("(pid,lvl,chldn,fitness,is_alive): {}".format(
+                    [(bp.hash, bp.node.level,
+                        len(bp.child_nodes),
+                        bp.node.fitness,
+                        bp.is_alive())
+                    for bp in bpm.get_processes()]))
 
         # kill any remaining processes
         bpm.deactivate_all()
-        mp_queue.close()
 
         node = sol_node.recurse()
 
