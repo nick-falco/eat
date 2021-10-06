@@ -398,26 +398,37 @@ class TermOperation():
                         r_array[row_idx].append(grp_col)
         return r_array
 
-    def calculate_term_fitness(self, term, target_array):
+    def calucate_number_pos_sol(self, target_array):
+        count = 1
+        for idx, input_row in enumerate(self.input):
+            if len(set(input_row)) == 1:
+                # check if idempontent
+                val = input_row[0]
+                if self.groupoid.get_value(val, val) == val:
+                    continue  # skip idempontent
+            count *= len(target_array[idx])
+        return count
+
+    def calculate_term_solution_count(self, term, target_array):
         """
-        Returns fitness of term with respect to output array
+        Returns count of term array rows that are correct in the target_array
         """
         term_array = self.compute(term)
         return self.calculate_array_fitness(term_array, target_array)
 
-    def calculate_array_fitness(self, input_array, target_array):
+    def calculate_array_solution_count(self, input_array, target_array):
         """
-        Returns fitness of input_array with respect to output array
+        Returns count of input_array rows that are correct in the target_array
         """
-        fitness = 0
+        count = 0
         for idx, val_array in enumerate(input_array):
             sol = False
             for val in val_array:
                 if val in target_array[idx]:
                     sol = True
             if sol:
-                fitness = fitness + 1
-        return fitness
+                count = count + 1
+        return count
 
     def is_solution(self, input_array, target_array):
         """
@@ -428,8 +439,9 @@ class TermOperation():
         :type target_array: list
         :param target_array: target solution array
         """
-        fitness = self.calculate_array_fitness(input_array, target_array)
-        if fitness == len(target_array):
+        count = self.calculate_array_solution_count(input_array,
+                                                    target_array)
+        if count == len(target_array):
             return True
         else:
             return False

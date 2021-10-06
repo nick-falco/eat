@@ -92,11 +92,6 @@ def parse_arguments():
                             help=("Whether to include validity array in "
                                   "verbose log output (default=False)"),
                             action='store_true')
-    beam_group.add_argument('-pcc', '--promotion-child-count',
-                            help=("The number of child terms required to "
-                                  "promote a proccess before a higher beam "
-                                  "level is full (default=2)"),
-                            type=non_negative_integer, default=None)
     beam_group.add_argument('-lrlc', '--lr-level-count',
                             help=("The number of beam levels to take the left "
                                   "and/or right array of. Whether the left or "
@@ -140,7 +135,6 @@ def main():
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
-    promotion_child_count = args.promotion_child_count
     lr_level_count = args.lr_level_count
 
     prob = args.probability
@@ -152,9 +146,6 @@ def main():
         elif beam_width:
             raise ValueError("The --beam-width (-bw) option only applies to "
                              "the BEAM algorithm.")
-        elif promotion_child_count:
-            raise ValueError("The --promotion_child_count (-pcc) option only "
-                             "applies to the BEAM algorithm.")
         # run the deep drilling algorithm
         dda = DeepDrillingAlgorithm(grp, to,
                                     male_term_generation_method=mtgm,
@@ -167,15 +158,6 @@ def main():
                              "to apply.")
         if beam_width is None:
             beam_width = 3
-        if promotion_child_count is None:
-            promotion_child_count = 2
-        if promotion_child_count > beam_width:
-            logging.warning("The --promotion_child_count (-pcc) value must "
-                            "less than or equal to the beam width. The "
-                            "--beam-width={} and -pcc={}. Setting "
-                            "-pcc={}".format(beam_width, promotion_child_count,
-                                             promotion_child_count))
-            promotion_child_count = beam_width
 
         # run the beam algorithm
         beam = BeamEnumerationAlgorithm(
@@ -186,7 +168,6 @@ def main():
                                 max_term_length=maxtl,
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
-                                promotion_child_count=promotion_child_count,
                                 lr_level_count=lr_level_count)
         beam.run(verbose=verbose, print_summary=print_summary,
                  include_validity_array=include_validity_array)
