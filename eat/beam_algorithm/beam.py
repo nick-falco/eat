@@ -376,16 +376,8 @@ class BeamEnumerationAlgorithm():
 
         while(True):
             f_node_sol = mp_queue.get()
-            f_node_sol_fitness = f_node_sol.fitness
             f_node_sol_parent_proc = \
                 bpm.get_process(f_node_sol.parent_node.proc_hash)
-
-            if f_node_sol_parent_proc.node.level > f_node_sol.level:
-                if verbose:
-                    print(f"Process {f_node_sol_parent_proc.hash} "
-                        f"is running above level {f_node_sol.level} "
-                        f"of the newly found female term. Skipping")
-                continue
 
             # If we reach here we found a valid female term of
             # sufficient fitness
@@ -404,11 +396,13 @@ class BeamEnumerationAlgorithm():
             procs_by_fitness = bpm.get_processes_by_decr_fitness(
                 f_node_sol.level)
             if not procs_by_fitness:
+                if verbose:
+                    print(f"!!Skipping {f_node_sol.term}. No processes running "
+                          f"at a level below {f_node_sol.level}!!")
                 continue
             least_fit_bp = procs_by_fitness[-1]
-            least_fit_bp_fitness = least_fit_bp.node.fitness
 
-            if (f_node_sol_fitness < least_fit_bp_fitness):
+            if (f_node_sol.fitness < least_fit_bp.node.fitness):
                 # Rerun process for solution node's parent
                 # and discard f_node_sol
                 if verbose:
@@ -427,7 +421,8 @@ class BeamEnumerationAlgorithm():
                         self.search_for_valid_female_node,
                         mp_queue,
                         f_node_sol.parent_node)
-            else:
+            elif f_node_sol.term not in [t.term for t in
+                    self.beam.get_level(f_node_sol.level)]:
                 # add node to beam and parent process child nodes
                 self.beam.add_node(f_node_sol)
                 f_node_sol_parent_proc.child_nodes.append(f_node_sol)
@@ -459,7 +454,7 @@ class BeamEnumerationAlgorithm():
                                 f"different than {f_node_sol.term}")
                     if f_node_sol.parent_node.level < lrlc:
                         f_node_sol_parent_proc.run(
-                            self.search_for_valid_female_node_using_lr_array,  # noqa
+                            self.search_for_valid_female_node_using_lr_array,
                             mp_queue,
                             f_node_sol.parent_node,
                             direction=choice(["left", "right"]))
@@ -468,6 +463,23 @@ class BeamEnumerationAlgorithm():
                             self.search_for_valid_female_node,
                             mp_queue,
                             f_node_sol.parent_node)
+            else:
+                if verbose:
+                    print(f"{f_node_sol_parent_proc.hash}: Duplicate term."
+                          f"Rerun {f_node_sol_parent_proc.hash} to "
+                          f"search for a new child female term "
+                          f"different than {f_node_sol.term}")
+                if f_node_sol.parent_node.level < lrlc:
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node_using_lr_array,
+                        mp_queue,
+                        f_node_sol.parent_node,
+                        direction=choice(["left", "right"]))
+                else:
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node,
+                        mp_queue,
+                        f_node_sol.parent_node)
             if verbose:
                 print("(pid,lvl,chldn,fitness,is_alive): {}".format(
                     [(bp.hash, bp.node.level,
@@ -487,5 +499,5 @@ class BeamEnumerationAlgorithm():
             print_search_summary(node.term, self.to, self.grp, end - start)
         else:
             if verbose:
-                print(f"Found a solution term {node.term}")
+                print(node.term)
         return node
