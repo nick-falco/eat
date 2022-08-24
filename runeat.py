@@ -1,35 +1,23 @@
 import os
 import argparse
+import platform
+import logging
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
+from eat.utilities.argparse_types import non_negative_integer, restricted_float
 
 
-def restricted_float(x):
-    try:
-        x = float(x)
-    except ValueError:
-        raise argparse.ArgumentTypeError(
-                "%r is not a floating-point literal" % (x,))
-
-    if x < 0.0 or x > 1.0:
-        raise argparse.ArgumentTypeError("{} not in range [0.0, 1.0]"
-                                         .format(x))
-    return x
-
-
-def non_negative_integer(value):
-    ivalue = int(value)
-    if ivalue < 0:
-        raise argparse.ArgumentTypeError(
-            "{} is not a positive int literal".format(value))
-    return ivalue
-
-
-def parse_argments():
+def parse_arguments():
     version_path = 'eat/VERSION'
-    VERSION = open(os.path.join(os.path.dirname(__file__), version_path)).read()
+    VERSION = open(os.path.join(os.path.dirname(__file__),
+                                version_path)).read()
     VERSION = VERSION.replace("\n", "")
+
+    if platform.python_version() < "3.0.0":
+        raise RuntimeError("Python 3 is required. You ran this script with "
+                           "python version {}"
+                           .format(platform.python_version()))
 
     parser = argparse.ArgumentParser(
         description=("Implementation of Evolution of Algebraic Terms (EAT {})"
@@ -71,8 +59,8 @@ def parse_argments():
                                  "The 'GRA' option randomly creates a male "
                                  "term using the Gamblers Ruin Algorithm. The "
                                  "'random-12-terms' method randomly selects a "
-                                 "term from the set of 12 one and two variable "
-                                 "terms. (default='GRA')"),
+                                 "term from the set of 12 one and two "
+                                 "variable terms. (default='GRA')"),
                            default="GRA")
     vtg_group.add_argument('-mintl', '--min-term-length',
                            help=("Minimum length of a randomly generated "
@@ -102,20 +90,20 @@ def parse_argments():
                             default=None)
     beam_group.add_argument('-iva', '--include-validity-array',
                             help=("Whether to include validity array in "
-                                 "verbose log output (default=False)"),
-                           action='store_true')
-    beam_group.add_argument('-pcc', '--promotion-child-count',
-                           help=("The number of child terms required to "
-                                 "promote a proccess before a higher beam "
-                                 "level is full (default=2)"),
-                           type=non_negative_integer, default=None),
-    
+                                  "verbose log output (default=False)"),
+                            action='store_true')
+    beam_group.add_argument('-lrlc', '--lr-level-count',
+                            help=("The number of beam levels to take the left "
+                                  "and/or right array of. Whether the left or "
+                                  "right array is taken is choosen at random. "
+                                  "(default=15)"),
+                            type=non_negative_integer, default=15)
 
     return parser.parse_args()
 
 
 def main():
-    args = parse_argments()
+    args = parse_arguments()
     # create groupoid table
     grp = Groupoid(args.groupoid)
 
@@ -147,7 +135,7 @@ def main():
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
-    promotion_child_count = args.promotion_child_count
+    lr_level_count = args.lr_level_count
 
     prob = args.probability
     algorithm = args.algorithm
@@ -158,9 +146,6 @@ def main():
         elif beam_width:
             raise ValueError("The --beam-width (-bw) option only applies to "
                              "the BEAM algorithm.")
-        elif promotion_child_count:
-            raise ValueError("The --promotion_child_count (-pcc) option only "
-                             "applies to the BEAM algorithm.")
         # run the deep drilling algorithm
         dda = DeepDrillingAlgorithm(grp, to,
                                     male_term_generation_method=mtgm,
@@ -173,22 +158,17 @@ def main():
                              "to apply.")
         if beam_width is None:
             beam_width = 3
-        if promotion_child_count is None:
-            promotion_child_count = 2
-        if promotion_child_count > beam_width:
-            raise ValueError("The --promotion_child_count (-pcc) value must "
-                             "less than or equal to the beam width.")
 
         # run the beam algorithm
-        beam = BeamEnumerationAlgorithm(grp,
-                                        to,
-                                        male_term_generation_method=mtgm,
-                                        min_term_length=mintl,
-                                        max_term_length=maxtl,
-                                        term_expansion_probability=prob,
-                                        beam_width=beam_width,
-                                        promotion_child_count=
-                                        promotion_child_count)
+        beam = BeamEnumerationAlgorithm(
+                                grp,
+                                to,
+                                male_term_generation_method=mtgm,
+                                min_term_length=mintl,
+                                max_term_length=maxtl,
+                                term_expansion_probability=prob,
+                                beam_width=beam_width,
+                                lr_level_count=lr_level_count)
         beam.run(verbose=verbose, print_summary=print_summary,
                  include_validity_array=include_validity_array)
 

@@ -1,7 +1,7 @@
 import itertools
 import math
 from random import choice, uniform
-from collections import OrderedDict 
+from collections import OrderedDict
 from eat.core.utilities import subset_sums, get_term_variables, \
     get_all_one_and_two_variable_terms
 
@@ -350,7 +350,39 @@ class TermOperation():
                         break  # continue to check next row of groupoid
         return l_array
 
-    def r_array(self, term_output, sol_output):
+    def r_array(self, term_output):
+        """
+        Returns an array containing the column indexes of the groupoid that
+        contain a value matching the target output at a given index.
+
+        RA(x, y, z) = {d E G | g * d E A(x, y, z) forsome g E G}:
+
+        e.g.
+
+         * 0 1 2
+         0 2 1 2
+         1 1 0 0
+         2 0 0 1
+
+         l_array([[0], [1], [0], [2]])
+         >>> [[0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 2]]
+
+         Because
+         [0] is found at gropuoid rows [0], [1] and [2]
+         [1] is found at groupoid rows [0], [1] and [2]
+         [2] is found at groupoid rows [0] and [2]
+        """
+        r_array = [[] for _ in range(0, len(term_output))]
+        for row_idx, term_row in enumerate(term_output):
+            for grp_row in range(0, self.groupoid.size):
+                for grp_col in range(0, self.groupoid.size):
+                    if self.groupoid.get_value(grp_row, grp_col) in term_row:
+                        if grp_col not in r_array[row_idx]:
+                            r_array[row_idx].append(grp_col)
+            r_array[row_idx] = sorted(r_array[row_idx])
+        return r_array
+
+    def r_of_l_array(self, term_output, sol_output):
         """
         Given a term's output array and a left array returns a new right array,
         where for each value in the term's output array "term_val" the
@@ -366,26 +398,37 @@ class TermOperation():
                         r_array[row_idx].append(grp_col)
         return r_array
 
-    def calculate_term_fitness(self, term, target_array):
+    def calucate_number_pos_sol(self, target_array):
+        count = 1
+        for idx, input_row in enumerate(self.input):
+            if len(set(input_row)) == 1:
+                # check if idempontent
+                val = input_row[0]
+                if self.groupoid.get_value(val, val) == val:
+                    continue  # skip idempontent
+            count *= len(target_array[idx])
+        return count
+
+    def calculate_term_solution_count(self, term, target_array):
         """
-        Returns fitness of term with respect to output array
+        Returns count of term array rows that are correct in the target_array
         """
         term_array = self.compute(term)
         return self.calculate_array_fitness(term_array, target_array)
 
-    def calculate_array_fitness(self, input_array, target_array):
+    def calculate_array_solution_count(self, input_array, target_array):
         """
-        Returns fitness of input_array with respect to output array
+        Returns count of input_array rows that are correct in the target_array
         """
-        fitness = 0
+        count = 0
         for idx, val_array in enumerate(input_array):
             sol = False
             for val in val_array:
                 if val in target_array[idx]:
                     sol = True
             if sol:
-                fitness = fitness + 1
-        return fitness
+                count = count + 1
+        return count
 
     def is_solution(self, input_array, target_array):
         """
@@ -396,8 +439,9 @@ class TermOperation():
         :type target_array: list
         :param target_array: target solution array
         """
-        fitness = self.calculate_array_fitness(input_array, target_array)
-        if fitness == len(target_array):
+        count = self.calculate_array_solution_count(input_array,
+                                                    target_array)
+        if count == len(target_array):
             return True
         else:
             return False

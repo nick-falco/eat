@@ -35,6 +35,7 @@ def get_all_one_and_two_variable_terms(term_variables):
                 combinations.append("{}*".format(combination))
     return combinations
 
+
 def postfix_to_infix(exp):
 
     def is_operand(x):

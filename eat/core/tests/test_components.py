@@ -18,16 +18,25 @@ class TestTermOperation(unittest.TestCase):
                              1, 0, 0,
                              0, 0, 1])
         to = TermOperation(grp)
-        r_array = to.r_array([[0], [1], [0], [2]],
-                             [[0, 1], [0], [0, 1, 2], [0, 2]])
+        r_array = to.r_array([[0], [1], [0], [2]])
+        self.assertAlmostEqual(r_array,
+                               [[0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 2]])
+
+    def test_r_of_l_array(self):
+        grp = Groupoid(data=[2, 1, 2,
+                             1, 0, 0,
+                             0, 0, 1])
+        to = TermOperation(grp)
+        r_array = to.r_of_l_array([[0], [1], [0], [2]],
+                                  [[0, 1], [0], [0, 1, 2], [0, 2]])
         self.assertEqual(r_array, [[1], [1, 2], [0, 1, 2], [0, 1]])
 
-        r_array = to.r_array([[0], [1], [0], [2]],
-                             [[1], [0, 1, 2], [0, 1, 2], [0]])
+        r_array = to.r_of_l_array([[0], [1], [0], [2]],
+                                  [[1], [0, 1, 2], [0, 1, 2], [0]])
         self.assertEqual(r_array, [[1], [0, 1, 2], [0, 1, 2], [0, 1]])
 
-        r_array = to.r_array([[0], [1], [0], [2]],
-                             [[1, 2], [1], [1], [0]])
+        r_array = to.r_of_l_array([[0], [1], [0], [2]],
+                                  [[1, 2], [1], [1], [0]])
         self.assertEqual(r_array, [[0, 1, 2], [0], [1], [0, 1]])
 
     def test_is_solution(self):
