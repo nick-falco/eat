@@ -8,6 +8,18 @@ import queue
 import multiprocessing as mp
 import logging
 import time
+import signal
+import sys
+
+
+def exit_gracefully(func):
+    def func_wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            return
+    return func_wrapper
+
 
 
 class Beam():
@@ -131,11 +143,15 @@ class BeamProcess():
 
     def terminate(self):
         if self.proc:
-            self.proc.terminate()
+            try:
+                self.proc.terminate()
+            except AttributeError:
+                # process already terminated by parent
+                return
+
 
     def deactivate(self):
-        if self.proc:
-            self.proc.terminate()
+        self.proc.terminate()
         self.child_nodes = []
 
     def is_alive(self):
@@ -155,9 +171,8 @@ class BeamEnumerationAlgorithm():
         self.to = term_operation
         self.beam = Beam(beam_width)
         self.vtg = ValidTermGenerator(self.to.term_variables)
-        self.validity_terms = \
+        self.male_terms = \
             get_all_one_and_two_variable_terms(self.to.term_variables)
-        self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
         self.min_term_length = min_term_length
         self.max_term_length = max_term_length
@@ -217,6 +232,7 @@ class BeamEnumerationAlgorithm():
             # we couldn't find a valid female term
             return None
 
+    @exit_gracefully
     def search_for_valid_female_node(self, mp_queue, curr_fnode):
         """
         Continuously searches for a valid female node and put result in the
@@ -245,6 +261,7 @@ class BeamEnumerationAlgorithm():
                             return
             random_terms.add(random_term)
 
+    @exit_gracefully
     def search_for_valid_female_node_using_lr_array(
                                 self, mp_queue, curr_fnode,
                                 direction="left"):
@@ -342,6 +359,7 @@ class BeamEnumerationAlgorithm():
                         if include_validity_array else "")
                   ))
 
+    @exit_gracefully
     def run(self, verbose=False, print_summary=False,
             include_validity_array=False):
         sol_node = None
@@ -353,6 +371,20 @@ class BeamEnumerationAlgorithm():
 
         mp_mngr = mp.Manager()
         mp_queue = mp_mngr.Queue()
+
+        def terminate_signal_handler(signum, frame):
+            # this closure gets the objects in scope of the process actively
+            # being terminated
+            mp_mngr.shutdown()
+
+        def interupt_signal_handler(signum, frame):
+            bpm.terminate_all()
+            sys.exit()
+
+        # Use signal handler to throw exception which can be caught to allow
+        # graceful exit.
+        signal.signal(signal.SIGINT, interupt_signal_handler)
+        signal.signal(signal.SIGTERM, terminate_signal_handler)
 
         bpm = BeamProcessManager()
 
@@ -489,7 +521,7 @@ class BeamEnumerationAlgorithm():
                     for bp in bpm.get_processes()]))
 
         # kill any remaining processes
-        bpm.deactivate_all()
+        bpm.terminate_all()
 
         node = sol_node.recurse()
 

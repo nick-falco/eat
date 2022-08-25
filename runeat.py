@@ -1,7 +1,8 @@
+import csv
 import os
 import argparse
 import platform
-import logging
+import time
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
@@ -34,6 +35,13 @@ def parse_arguments():
                         nargs='+',
                         type=non_negative_integer,
                         default=[1, 1, 2, 0, 2, 0, 0, 2, 1])
+    parser.add_argument('-rc', '--run-count',
+                        help="Run the algorithm rc times. Write the run "
+                             "times and term length for each execution to a "
+                             "file named "
+                             "<algorithm>_execution_results_<timestamp>.csv",
+                        type=non_negative_integer,
+                        default=1)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-tdt', '--target-ternary-descriminator',
                        help="Ternary descriminator target output (default)",
@@ -100,6 +108,48 @@ def parse_arguments():
                             type=non_negative_integer, default=15)
 
     return parser.parse_args()
+
+
+def run_beam_algorith_multiple_times(beam, run_count, print_summary):
+    execution_results = []
+    total_time = 0
+    total_term_length = 0
+    for _ in range(run_count):
+        start = time.time()
+        node = beam.run(verbose=False, print_summary=False,
+                        include_validity_array=False)
+        end = time.time()
+
+        # calculate execution times
+        search_time = end - start
+        term_length = len(node.term)
+        # calculate totals for final averages
+        total_time += search_time
+        total_term_length += term_length
+
+        execution_results.append({
+            "search_time": search_time,
+            "term_length": term_length
+        })
+        if print_summary:
+            print(f"Term length  = {term_length}")
+            print(f"Search time  = {search_time} sec")
+            print("----")
+
+    result_file_name = "beam_algorithm_execution_times.csv"
+    with open(result_file_name, "w") as results_file:
+        keys = execution_results[0].keys()
+        dict_writer = csv.DictWriter(results_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(execution_results)
+
+    if print_summary:
+        average_search_time = total_time / run_count
+        average_term_length = total_term_length / run_count
+        print(f"Average serach time = {average_search_time}")
+        print(f"Average term length = {average_term_length}")
+        print("----")
+    print(f"Wrote execution times to {result_file_name}")
 
 
 def main():
@@ -169,8 +219,13 @@ def main():
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
                                 lr_level_count=lr_level_count)
-        beam.run(verbose=verbose, print_summary=print_summary,
-                 include_validity_array=include_validity_array)
+        if args.run_count > 1:
+            run_beam_algorith_multiple_times(beam,
+                                             args.run_count,
+                                             print_summary)
+        else:
+            beam.run(verbose=verbose, print_summary=print_summary,
+                     include_validity_array=include_validity_array)
 
 
 if __name__ == '__main__':
