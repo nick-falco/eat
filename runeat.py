@@ -1,7 +1,8 @@
+import csv
 import os
 import argparse
 import platform
-import logging
+import time
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
@@ -34,6 +35,13 @@ def parse_arguments():
                         nargs='+',
                         type=non_negative_integer,
                         default=[1, 1, 2, 0, 2, 0, 0, 2, 1])
+    parser.add_argument('-rc', '--run-count',
+                        help="Run the algorithm rc times. Write the run "
+                             "times and term length for each execution to a "
+                             "file named "
+                             "beam_algorithm_execution_times.csv",
+                        type=non_negative_integer,
+                        default=1)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-tdt', '--target-ternary-descriminator',
                        help="Ternary descriminator target output (default)",
@@ -92,12 +100,6 @@ def parse_arguments():
                             help=("Whether to include validity array in "
                                   "verbose log output (default=False)"),
                             action='store_true')
-    beam_group.add_argument('-lrlc', '--lr-level-count',
-                            help=("The number of beam levels to take the left "
-                                  "and/or right array of. Whether the left or "
-                                  "right array is taken is choosen at random. "
-                                  "(default=15)"),
-                            type=non_negative_integer, default=15)
 
     return parser.parse_args()
 
@@ -131,15 +133,18 @@ def main():
 
     verbose = args.verbose
     print_summary = args.print_summary
+    run_count = args.run_count
 
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
-    lr_level_count = args.lr_level_count
 
     prob = args.probability
     algorithm = args.algorithm
     if algorithm == "DDA":
+        if run_count > 1:
+            raise ValueError("The --run-count (-rc) option "
+                             "only applies to the BEAM algorithm.")
         if include_validity_array:
             raise ValueError("The --include-validity-array (-iva) option "
                              "only applies to the BEAM algorithm.")
@@ -167,10 +172,40 @@ def main():
                                 min_term_length=mintl,
                                 max_term_length=maxtl,
                                 term_expansion_probability=prob,
-                                beam_width=beam_width,
-                                lr_level_count=lr_level_count)
-        beam.run(verbose=verbose, print_summary=print_summary,
-                 include_validity_array=include_validity_array)
+                                beam_width=beam_width)
+        execution_results = []
+        total_time = 0
+        total_term_length = 0
+        for _ in range(run_count):
+            start = time.time()
+            node = beam.run(verbose=verbose, print_summary=print_summary,
+                            include_validity_array=include_validity_array)
+            end = time.time()
+
+            # calculate execution times
+            search_time = round(end - start, 2)
+            term_length = len(node.term)
+            # calculate totals for final averages
+            total_time += search_time
+            total_term_length += term_length
+
+            execution_results.append({
+                "search_time": search_time,
+                "term_length": term_length
+            })
+
+        if print_summary and run_count > 1:
+            result_file_name = "beam_algorithm_execution_times.csv"
+            with open(result_file_name, "w") as results_file:
+                keys = execution_results[0].keys()
+                dict_writer = csv.DictWriter(results_file, keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(execution_results)
+            average_search_time = round(total_time / run_count, 2)
+            average_term_length = round(total_term_length / run_count, 2)
+            print(f"Average serach time = {average_search_time}")
+            print(f"Average term length = {average_term_length}")
+            print("----")
 
 
 if __name__ == '__main__':
