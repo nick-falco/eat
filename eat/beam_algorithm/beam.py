@@ -98,7 +98,6 @@ class BeamProcessManager():
                            reverse=True)
         return processes
 
-
     def get_process_below_level(self, level):
         processes_below_h = []
         for bp in self.get_processes():
@@ -163,7 +162,7 @@ class BeamEnumerationAlgorithm():
     def __init__(self, groupoid, term_operation, min_term_length=None,
                  max_term_length=None, term_expansion_probability=0.3,
                  male_term_generation_method="random", beam_width=3,
-                 lr_level_count=5):
+                 is_subbeam=False):
         self.grp = groupoid
         self.to = term_operation
         self.beam = Beam(beam_width)
@@ -175,7 +174,7 @@ class BeamEnumerationAlgorithm():
         self.max_term_length = max_term_length
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
-        self.lr_level_count = lr_level_count
+        self.is_subbeam = is_subbeam
         try:
             mp.set_start_method('fork', force=True)
         except RuntimeError:
@@ -289,27 +288,26 @@ class BeamEnumerationAlgorithm():
                  term_expansion_probability=self.term_expansion_probability,
                  male_term_generation_method=self.male_term_generation_method,
                  beam_width=self.beam_width,
-                 lr_level_count=0)
+                 is_subbeam=True)
         # Continuously search for a new solution
         while(True):
-            # set lr_level_count=0 as to not recurse when finding
-            # la/ra sol
             sol_node = ba.run()
             if direction == "left":
                 new_female_term = combine_postfix(sol_node.term, "F")
             else:
                 new_female_term = combine_postfix("F", sol_node.term)
             has_validity_array, validity_array = \
-                self.to.compute_validity_array(new_female_term, curr_fnode.array)
+                self.to.compute_validity_array(new_female_term,
+                                               curr_fnode.array)
             if has_validity_array is False:
                 raise RuntimeError("A {} array solution was found that is not "
-                                "valid! Something went wrong!"
-                                .format(direction))
+                                   "valid! Something went wrong!"
+                                   .format(direction))
             f_node = Node(new_female_term,
-                        validity_array,
-                        curr_fnode,
-                        curr_fnode.level+1,
-                        curr_fnode.to)
+                          validity_array,
+                          curr_fnode,
+                          curr_fnode.level+1,
+                          curr_fnode.to)
             if f_node.term not in exclude:
                 mp_queue.put_nowait(f_node)
                 return
@@ -384,16 +382,13 @@ class BeamEnumerationAlgorithm():
         signal.signal(signal.SIGINT, interupt_signal_handler)
         signal.signal(signal.SIGTERM, terminate_signal_handler)
 
-
-        lrlc = self.lr_level_count
-
         for idx, f_node in enumerate(
                 self.beam.get_level(self.beam.get_height()-1)):
             # start a process for each of the initial nodes at level 0
             bp = BeamProcess("P{}".format(idx))
             bpm.add_process(bp)
             f_node.proc_hash = bp.hash
-            if f_node.level < lrlc:
+            if not self.is_subbeam:
                 bp.run(self.search_for_valid_female_node_using_lr_array,
                        mp_queue,
                        f_node,
@@ -436,7 +431,7 @@ class BeamEnumerationAlgorithm():
                         f"{f_node_sol_parent_proc.hash} to search for "
                         f"a new term. "
                         f"{f_node_sol.fitness} < {least_fit_bp.node.fitness}")
-                if f_node_sol.parent_node.level < lrlc:
+                if not self.is_subbeam:
                     f_node_sol_parent_proc.run(
                         self.search_for_valid_female_node_using_lr_array,  # noqa
                         mp_queue,
@@ -461,7 +456,7 @@ class BeamEnumerationAlgorithm():
                     print(f"{least_fit_bp.hash}: Reassigned "
                           f"{least_fit_bp.hash} to work on the newly "
                           f"found female term {f_node_sol.term}")
-                if f_node_sol.level < lrlc:
+                if not self.is_subbeam:
                     least_fit_bp.run(
                         self.search_for_valid_female_node_using_lr_array,  # noqa
                         mp_queue,
@@ -478,7 +473,7 @@ class BeamEnumerationAlgorithm():
                               f"{f_node_sol_parent_proc.hash} to "
                               f"search for a new child female term "
                               f"different than {f_node_sol.term}")
-                    if f_node_sol.parent_node.level < lrlc:
+                    if not self.is_subbeam:
                         f_node_sol_parent_proc.run(
                             self.search_for_valid_female_node_using_lr_array,
                             mp_queue,
@@ -495,7 +490,7 @@ class BeamEnumerationAlgorithm():
                           f"Rerun {f_node_sol_parent_proc.hash} to "
                           f"search for a new child female term "
                           f"different than {f_node_sol.term}")
-                if f_node_sol.parent_node.level < lrlc:
+                if not self.is_subbeam:
                     f_node_sol_parent_proc.run(
                         self.search_for_valid_female_node_using_lr_array,
                         mp_queue,

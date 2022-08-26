@@ -100,12 +100,6 @@ def parse_arguments():
                             help=("Whether to include validity array in "
                                   "verbose log output (default=False)"),
                             action='store_true')
-    beam_group.add_argument('-lrlc', '--lr-level-count',
-                            help=("The number of beam levels to take the left "
-                                  "and/or right array of. Whether the left or "
-                                  "right array is taken is choosen at random. "
-                                  "(default=15)"),
-                            type=non_negative_integer, default=15)
 
     return parser.parse_args()
 
@@ -144,7 +138,6 @@ def main():
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
-    lr_level_count = args.lr_level_count
 
     prob = args.probability
     algorithm = args.algorithm
@@ -179,8 +172,7 @@ def main():
                                 min_term_length=mintl,
                                 max_term_length=maxtl,
                                 term_expansion_probability=prob,
-                                beam_width=beam_width,
-                                lr_level_count=lr_level_count)
+                                beam_width=beam_width)
         execution_results = []
         total_time = 0
         total_term_length = 0
