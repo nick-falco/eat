@@ -110,48 +110,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def run_beam_algorith_multiple_times(beam, run_count, print_summary):
-    execution_results = []
-    total_time = 0
-    total_term_length = 0
-    for _ in range(run_count):
-        start = time.time()
-        node = beam.run(verbose=False, print_summary=False,
-                        include_validity_array=False)
-        end = time.time()
-
-        # calculate execution times
-        search_time = end - start
-        term_length = len(node.term)
-        # calculate totals for final averages
-        total_time += search_time
-        total_term_length += term_length
-
-        execution_results.append({
-            "search_time": search_time,
-            "term_length": term_length
-        })
-        if print_summary:
-            print(f"Term length  = {term_length}")
-            print(f"Search time  = {search_time} sec")
-            print("----")
-
-    result_file_name = "beam_algorithm_execution_times.csv"
-    with open(result_file_name, "w") as results_file:
-        keys = execution_results[0].keys()
-        dict_writer = csv.DictWriter(results_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(execution_results)
-
-    if print_summary:
-        average_search_time = total_time / run_count
-        average_term_length = total_term_length / run_count
-        print(f"Average serach time = {average_search_time}")
-        print(f"Average term length = {average_term_length}")
-        print("----")
-    print(f"Wrote execution times to {result_file_name}")
-
-
 def main():
     args = parse_arguments()
     # create groupoid table
@@ -181,6 +139,7 @@ def main():
 
     verbose = args.verbose
     print_summary = args.print_summary
+    run_count = args.run_count
 
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
@@ -190,6 +149,9 @@ def main():
     prob = args.probability
     algorithm = args.algorithm
     if algorithm == "DDA":
+        if run_count > 1:
+            raise ValueError("The --run-count (-rc) option "
+                             "only applies to the BEAM algorithm.")
         if include_validity_array:
             raise ValueError("The --include-validity-array (-iva) option "
                              "only applies to the BEAM algorithm.")
@@ -219,13 +181,39 @@ def main():
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
                                 lr_level_count=lr_level_count)
-        if args.run_count > 1:
-            run_beam_algorith_multiple_times(beam,
-                                             args.run_count,
-                                             print_summary)
-        else:
-            beam.run(verbose=verbose, print_summary=print_summary,
-                     include_validity_array=include_validity_array)
+        execution_results = []
+        total_time = 0
+        total_term_length = 0
+        for _ in range(run_count):
+            start = time.time()
+            node = beam.run(verbose=verbose, print_summary=print_summary,
+                            include_validity_array=include_validity_array)
+            end = time.time()
+
+            # calculate execution times
+            search_time = round(end - start, 2)
+            term_length = len(node.term)
+            # calculate totals for final averages
+            total_time += search_time
+            total_term_length += term_length
+
+            execution_results.append({
+                "search_time": search_time,
+                "term_length": term_length
+            })
+
+        if print_summary and run_count:
+            result_file_name = "beam_algorithm_execution_times.csv"
+            with open(result_file_name, "w") as results_file:
+                keys = execution_results[0].keys()
+                dict_writer = csv.DictWriter(results_file, keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(execution_results)
+            average_search_time = round(total_time / run_count, 2)
+            average_term_length = round(total_term_length / run_count, 2)
+            print(f"Average serach time = {average_search_time}")
+            print(f"Average term length = {average_term_length}")
+            print("----")
 
 
 if __name__ == '__main__':
