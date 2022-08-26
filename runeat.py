@@ -39,7 +39,7 @@ def parse_arguments():
                         help="Run the algorithm rc times. Write the run "
                              "times and term length for each execution to a "
                              "file named "
-                             "<algorithm>_execution_results_<timestamp>.csv",
+                             "beam_algorithm_execution_times.csv",
                         type=non_negative_integer,
                         default=1)
     group = parser.add_mutually_exclusive_group()
@@ -202,7 +202,7 @@ def main():
                 "term_length": term_length
             })
 
-        if print_summary and run_count:
+        if print_summary and run_count > 1:
             result_file_name = "beam_algorithm_execution_times.csv"
             with open(result_file_name, "w") as results_file:
                 keys = execution_results[0].keys()
