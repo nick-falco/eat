@@ -510,7 +510,7 @@ class BeamEnumerationAlgorithm():
                      for bp in bpm.get_processes()]))
 
         # kill any remaining processes
-        bpm.terminate_all()
+        bpm.deactivate_all()
 
         node = sol_node.recurse()
 
