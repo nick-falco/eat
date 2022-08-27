@@ -91,7 +91,7 @@ class BeamProcessManager():
     def get_processes(self):
         return self.proc_map.values()
 
-    def get_processes_by_decr_fitness(self, level):
+    def get_processes_by_decr_fitness(self):
         processes = self.get_processes()
         processes = sorted(processes,
                            key=lambda bp: bp.node.fitness,
@@ -417,8 +417,7 @@ class BeamEnumerationAlgorithm():
             if sol_node:
                 break
 
-            procs_by_fitness = bpm.get_processes_by_decr_fitness(
-                f_node_sol.level)
+            procs_by_fitness = bpm.get_processes_by_decr_fitness()
             least_fit_bp = procs_by_fitness[-1]
 
             if (f_node_sol.fitness < least_fit_bp.node.fitness):
