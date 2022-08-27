@@ -92,7 +92,7 @@ class BeamProcessManager():
         return self.proc_map.values()
 
     def get_processes_by_decr_fitness(self, level):
-        processes = self.get_processes()
+        processes = self.get_process_below_level(level)
         processes = sorted(processes,
                            key=lambda bp: bp.node.fitness,
                            reverse=True)
@@ -236,7 +236,7 @@ class BeamEnumerationAlgorithm():
         """
         # Exclude solutions that we know have already been found when we start
         # a new search process
-        exclude = {}
+        exclude = set()
         next_level = self.beam.get_level(curr_fnode.level+1)
         if next_level:
             exclude = {f_node.term for f_node in next_level}
@@ -419,6 +419,11 @@ class BeamEnumerationAlgorithm():
 
             procs_by_fitness = bpm.get_processes_by_decr_fitness(
                 f_node_sol.level)
+            if not procs_by_fitness:
+                if verbose:
+                    print(f"!!Skipping {f_node_sol.term}. No processes running "
+                          f"at a level below {f_node_sol.level}!!")
+                continue
             least_fit_bp = procs_by_fitness[-1]
 
             if (f_node_sol.fitness < least_fit_bp.node.fitness):
@@ -511,7 +516,7 @@ class BeamEnumerationAlgorithm():
                      for bp in bpm.get_processes()]))
 
         # kill any remaining processes
-        bpm.terminate_all()
+        bpm.deactivate_all()
 
         node = sol_node.recurse()
 
