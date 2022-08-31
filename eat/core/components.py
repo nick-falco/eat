@@ -532,18 +532,20 @@ class ValidTermGenerator():
         self.term_variables = term_variables
 
     def random_term_generation(self, prob=0.1):
-        terms = ['E', 'EE*', 'EE*E*', 'EEE**', 'EE*EE**', 'EEE*E**',
-                 'EEEE***', 'EEE**E*', 'EE*E*E*']
-        substitutions = ("EE*", "I")
+        terms = ['E', 'EE*', 'EE*E*', 'EEE**', 'EE*EE**', 'EEE*E**', 'EEEE***',
+                 'EEE**E*', 'EE*E*E*']
         term = choice(terms)
-        while("E" in term):
-            rand = uniform(0, 1)
-            if rand < prob:
-                index = 0
-            else:
-                index = 1
-            term = term.replace("E", substitutions[index], 1)
-        
+        if len(term) > 5:
+            substitutions = ("EE*", "I")
+            while("E" in term):
+                rand = uniform(0, 1)
+                if rand < prob:
+                    index = 0
+                else:
+                    index = 1
+                term = term.replace("E", substitutions[index], 1)
+        else:
+            term = term.replace("E", "I")
         # randomly replace operands
         while("I" in term):
             term = term.replace("I", choice(self.term_variables), 1)
