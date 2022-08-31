@@ -3,7 +3,7 @@ from eat.core.utilities import get_all_one_and_two_variable_terms, \
     print_search_summary, condensed_array, combine_postfix
 from copy import copy
 from operator import attrgetter
-from random import choice
+from random import choice, uniform
 import multiprocessing as mp
 import logging
 import time
@@ -161,7 +161,7 @@ class BeamEnumerationAlgorithm():
 
     def __init__(self, groupoid, term_operation, min_term_length=None,
                  max_term_length=None, term_expansion_probability=0.3,
-                 male_term_generation_method="random", beam_width=3,
+                 male_term_generation_method="GRA", beam_width=3,
                  is_subbeam=False):
         self.grp = groupoid
         self.to = term_operation
@@ -189,13 +189,15 @@ class BeamEnumerationAlgorithm():
     def get_male_term(self, generation_method="GRA", **kwargs):
         if generation_method == "GRA":
             return self.vtg.generate(
-                algorithm="GRA",
+                algorithm=generation_method,
                 min_term_length=self.min_term_length,
                 max_term_length=self.max_term_length,
                 prob=self.term_expansion_probability,
                 **kwargs)
-        elif generation_method == "random-12-terms":
-            return self.vtg.generate(algorithm="random-12-terms", **kwargs)
+        elif generation_method == "random-term-generation":
+            return self.vtg.generate(algorithm=generation_method,
+                                     prob=self.term_expansion_probability,
+                                     **kwargs)
 
     def create_female_term(self, male_term, direction):
         """

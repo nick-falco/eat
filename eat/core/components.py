@@ -409,13 +409,6 @@ class TermOperation():
             count *= len(target_array[idx])
         return count
 
-    def calculate_term_solution_count(self, term, target_array):
-        """
-        Returns count of term array rows that are correct in the target_array
-        """
-        term_array = self.compute(term)
-        return self.calculate_array_fitness(term_array, target_array)
-
     def calculate_array_solution_count(self, input_array, target_array):
         """
         Returns count of input_array rows that are correct in the target_array
@@ -425,9 +418,8 @@ class TermOperation():
             sol = False
             for val in val_array:
                 if val in target_array[idx]:
-                    sol = True
-            if sol:
-                count = count + 1
+                    count = count + 1
+                    break
         return count
 
     def is_solution(self, input_array, target_array):
@@ -451,11 +443,9 @@ class TermOperation():
         Solves the value of a term containing ony numbers and operator values
         """
         pds = []
-        term_list = [int(i) if i.isdigit() else i
-                     for i in list(term)]
-        for i in term_list:
-            if type(i) is int:
-                pds.append(i)
+        for i in list(term):
+            if i.isdigit():
+                pds.append(int(i))
             else:
                 val2 = pds.pop()
                 val1 = pds.pop()
@@ -541,6 +531,24 @@ class ValidTermGenerator():
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
+    def random_term_generation(self, prob=0.1):
+        terms = ['E', 'EE*', 'EE*E*', 'EEE**', 'EE*EE**', 'EEE*E**',
+                 'EEEE***', 'EEE**E*', 'EE*E*E*']
+        substitutions = ("EE*", "I")
+        term = choice(terms)
+        while("E" in term):
+            rand = uniform(0, 1)
+            if rand < prob:
+                index = 0
+            else:
+                index = 1
+            term = term.replace("E", substitutions[index], 1)
+        
+        # randomly replace operands
+        while("I" in term):
+            term = term.replace("I", choice(self.term_variables), 1)
+        return term
+
     def gamblers_ruin_algorithm(self, prob=0.3,
                                 min_term_length=1,
                                 max_term_length=None):
@@ -588,8 +596,8 @@ class ValidTermGenerator():
             kwargs = {}
         if algorithm == "GRA":
             return self.gamblers_ruin_algorithm(**kwargs)
-        elif algorithm == "random-12-terms":
-            return self.random_12_terms(**kwargs)
+        elif algorithm == "random-term-generation":
+            return self.random_term_generation(**kwargs)
         else:
             raise ValueError("Unkown algorithm {}.")
 

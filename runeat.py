@@ -61,15 +61,16 @@ def parse_arguments():
                         nargs='+', type=str, default=["x", "y", "z"])
     vtg_group = parser.add_argument_group('Valid term generator options')
     vtg_group.add_argument('-mtgm', '--male-term-generation-method',
-                           choices=["GRA", "random-12-terms"],
+                           choices=["GRA", "random-term-generation"],
                            help=("Method to use for generating male terms. "
                                  "Choose from 'GRA' and 'random-12-terms'. "
                                  "The 'GRA' option randomly creates a male "
                                  "term using the Gamblers Ruin Algorithm. The "
-                                 "'random-12-terms' method randomly selects a "
-                                 "term from the set of 12 one and two "
-                                 "variable terms. (default='GRA')"),
-                           default="GRA")
+                                 "'random-term-generation' method randomly "
+                                 "is a modified version of the GRA that "
+                                 "randomly selects a 1 to 4 variable "
+                                 "occurance term tree as its starting point."),
+                           default="random-term-generation")
     vtg_group.add_argument('-mintl', '--min-term-length',
                            help=("Minimum length of a randomly generated "
                                  "term. (default=None)"),
