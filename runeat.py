@@ -28,13 +28,12 @@ def parse_arguments():
                         action='version',
                         version=VERSION)
     parser.add_argument('-a', '--algorithm',
-                        help="EAT algorithm to run. (default='DDA')",
-                        type=str, default="DDA", choices=["DDA", "BEAM"])
+                        help="EAT algorithm to run. (default='BEAM')",
+                        type=str, default="BEAM", choices=["DDA", "BEAM"])
     parser.add_argument('-g', '--groupoid',
                         help="Gropoid operation matrix",
                         nargs='+',
-                        type=non_negative_integer,
-                        default=[1, 1, 2, 0, 2, 0, 0, 2, 1])
+                        type=non_negative_integer)
     parser.add_argument('-rc', '--run-count',
                         help="Run the algorithm rc times. Write the run "
                              "times and term length for each execution to a "
@@ -61,29 +60,36 @@ def parse_arguments():
                         nargs='+', type=str, default=["x", "y", "z"])
     vtg_group = parser.add_argument_group('Valid term generator options')
     vtg_group.add_argument('-mtgm', '--male-term-generation-method',
-                           choices=["GRA", "random-12-terms"],
+                           choices=["GRA", "random-term-generation"],
                            help=("Method to use for generating male terms. "
-                                 "Choose from 'GRA' and 'random-12-terms'. "
+                                 "Choose from 'GRA' and "
+                                 "'random-term-generation'. "
                                  "The 'GRA' option randomly creates a male "
                                  "term using the Gamblers Ruin Algorithm. The "
-                                 "'random-12-terms' method randomly selects a "
-                                 "term from the set of 12 one and two "
-                                 "variable terms. (default='GRA')"),
-                           default="GRA")
+                                 "'random-term-generation' RTG (default) "
+                                 "method randomly is a modified version of "
+                                 "the GRA that randomly selects a 1 to 4 "
+                                 "variable occurance term tree, and then "
+                                 "runs the GRA with the selected term tree "
+                                 "as the starting point if the randomly "
+                                 "selected tree has 4 variable occurances. "
+                                 "Otherwise, if the term tree has less than "
+                                 "4 variable occurances it is used as is."),
+                           default="random-term-generation")
     vtg_group.add_argument('-mintl', '--min-term-length',
                            help=("Minimum length of a randomly generated "
-                                 "term. (default=None)"),
-                           type=non_negative_integer, default=1),
+                                 "term. (default=None) (GRA only)"),
+                           type=non_negative_integer, default=None),
     vtg_group.add_argument('-maxtl', '--max-term-length',
                            help=("Maximum length of a randomly generated "
-                                 "term. (default=None)"),
+                                 "term. (default=None) (GRA only)"),
                            type=non_negative_integer, default=None),
     vtg_group.add_argument('-p', '--probability',
                            help=("For random term generation specify the "
                                  "probability of growing the random term. "
                                  "Must be a number between 0 and 1. "
-                                 "(default = 0.3)"),
-                           type=restricted_float, default=0.3)
+                                 "(default = 0.025 = 2.5%)"),
+                           type=restricted_float, default=0.025)
     log_group = parser.add_argument_group('Logging verbosity options')
     log_group.add_argument('-v', '--verbose', help="Print verbose output",
                            action='store_true')
@@ -163,6 +169,12 @@ def main():
                              "to apply.")
         if beam_width is None:
             beam_width = 3
+
+        if mtgm == 'random-term-generation' and (mintl or maxtl):
+            raise ValueError(
+                "The --min-term-length (-mintl) and --max-term-length "
+                "options only apply when the --male-term-generation-method "
+                "is set to 'GRA'.")
 
         # run the beam algorithm
         beam = BeamEnumerationAlgorithm(

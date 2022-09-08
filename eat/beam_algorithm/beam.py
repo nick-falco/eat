@@ -1,6 +1,6 @@
 from eat.core.components import ValidTermGenerator, TermOperation
-from eat.core.utilities import get_all_one_and_two_variable_terms, \
-    print_search_summary, condensed_array, combine_postfix
+from eat.core.utilities import print_search_summary, condensed_array, \
+    combine_postfix
 from copy import copy
 from operator import attrgetter
 from random import choice
@@ -68,7 +68,7 @@ class Node():
 
     def recurse(self):
         node = copy(self)
-        while(node.parent_node is not None):
+        while (node.parent_node is not None):
             # recursively construct the term
             node.parent_node.term = \
                 node.parent_node.term.replace("F", node.term)
@@ -161,14 +161,13 @@ class BeamEnumerationAlgorithm():
 
     def __init__(self, groupoid, term_operation, min_term_length=None,
                  max_term_length=None, term_expansion_probability=0.3,
-                 male_term_generation_method="random", beam_width=3,
+                 male_term_generation_method="GRA", beam_width=3,
                  is_subbeam=False):
         self.grp = groupoid
         self.to = term_operation
         self.beam = Beam(beam_width)
         self.vtg = ValidTermGenerator(self.to.term_variables)
-        self.male_terms = \
-            get_all_one_and_two_variable_terms(self.to.term_variables)
+        self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
         self.min_term_length = min_term_length
         self.max_term_length = max_term_length
@@ -189,13 +188,15 @@ class BeamEnumerationAlgorithm():
     def get_male_term(self, generation_method="GRA", **kwargs):
         if generation_method == "GRA":
             return self.vtg.generate(
-                algorithm="GRA",
+                algorithm=generation_method,
                 min_term_length=self.min_term_length,
                 max_term_length=self.max_term_length,
                 prob=self.term_expansion_probability,
                 **kwargs)
-        elif generation_method == "random-12-terms":
-            return self.vtg.generate(algorithm="random-12-terms", **kwargs)
+        elif generation_method == "random-term-generation":
+            return self.vtg.generate(algorithm=generation_method,
+                                     prob=self.term_expansion_probability,
+                                     **kwargs)
 
     def create_female_term(self, male_term, direction):
         """
@@ -243,7 +244,7 @@ class BeamEnumerationAlgorithm():
 
         random_terms = set()
         # Continuously search for a new solution
-        while(True):
+        while (True):
             random_term = self.get_male_term(
                 generation_method=self.male_term_generation_method
             )
@@ -290,7 +291,7 @@ class BeamEnumerationAlgorithm():
                  beam_width=self.beam_width,
                  is_subbeam=True)
         # Continuously search for a new solution
-        while(True):
+        while (True):
             sol_node = ba.run()
             if direction == "left":
                 new_female_term = combine_postfix(sol_node.term, "F")
@@ -315,7 +316,7 @@ class BeamEnumerationAlgorithm():
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
             male_term_sol = self.to.compute(mt)
-            if(self.to.is_solution(male_term_sol, curr_fnode.array)):
+            if (self.to.is_solution(male_term_sol, curr_fnode.array)):
                 # found a solution
                 return Node(mt, male_term_sol, curr_fnode, curr_fnode.level+1,
                             curr_fnode.to)
@@ -398,7 +399,7 @@ class BeamEnumerationAlgorithm():
                        mp_queue,
                        f_node)
 
-        while(True):
+        while (True):
             f_node_sol = mp_queue.get()
             f_node_sol_parent_proc = \
                 bpm.get_process(f_node_sol.parent_node.proc_hash)
@@ -421,8 +422,8 @@ class BeamEnumerationAlgorithm():
                 f_node_sol.level)
             if not procs_by_fitness:
                 if verbose:
-                    print(f"!!Skipping {f_node_sol.term}. No processes running "
-                          f"at a level below {f_node_sol.level}!!")
+                    print(f"!!Skipping {f_node_sol.term}. No processes "
+                          f"running at a level below {f_node_sol.level}!!")
                 continue
             least_fit_bp = procs_by_fitness[-1]
 
