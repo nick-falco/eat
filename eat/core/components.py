@@ -12,11 +12,6 @@ class Groupoid():
         """
         Construtor for a groupoid. If data is not supplied, a randomly
         filled 3 element groupoid is created.
-
-        :type size: int
-        :param size: number of groupoid cells per row
-        :type fill: int
-        :param fill: default fill value for all cells of groupoid
         """
         if data:
             self.size = self.get_groupoid_size(data)
@@ -96,6 +91,35 @@ class Groupoid():
             size = self.size
         return [groupoid_values[i:i+size]
                 for i in range(0, len(groupoid_values), size)]
+
+    def get_random_groupoid_data(self, size=None):
+        """
+        Generate randomly filled groupoid data
+
+        :type size: int
+        :param size: number of groupoid cells per row
+
+        :rtype: list
+        :return: groupoid data as a list of lists
+        """
+        if size is None:
+            size = self.size
+
+        assigned_indexes = []  # keep track of assigned indexes
+        groupoid_cell_count = pow(size, 2)
+        groupoid_values = [None] * groupoid_cell_count
+
+        for _ in range(0, size**2):
+            # choose a random input value
+            possible_inputs = [i for i in range(0, size)]
+            input_value = choice(possible_inputs)
+            # choose random groupoid cell [0, groupoid_cell_count-1]
+            cell = choice([i for i in range(0, groupoid_cell_count)
+                           if i not in assigned_indexes])
+            assigned_indexes.append(cell)
+            # assign random input value to a random groupoid cell
+            groupoid_values[cell] = input_value
+        return self.list_to_groupoid_data(groupoid_values, size)
 
     def get_random_primal_groupoid_data(self, size=None):
         """
@@ -415,7 +439,6 @@ class TermOperation():
         """
         count = 0
         for idx, val_array in enumerate(input_array):
-            sol = False
             for val in val_array:
                 if val in target_array[idx]:
                     count = count + 1
@@ -531,7 +554,7 @@ class ValidTermGenerator():
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
-    def random_term_generation(self, prob=0.1):
+    def random_term_generation(self, prob=0.025):
         terms = ['E', 'EE*', 'EE*E*', 'EEE**', 'EE*EE**', 'EEE*E**', 'EEEE***',
                  'EEE**E*', 'EE*E*E*']
         term = choice(terms)
@@ -552,7 +575,7 @@ class ValidTermGenerator():
         return term
 
     def gamblers_ruin_algorithm(self, prob=0.3,
-                                min_term_length=1,
+                                min_term_length=None,
                                 max_term_length=None):
         """
         Generate a random term using the gamblers ruin algorithm
@@ -562,6 +585,8 @@ class ValidTermGenerator():
         :type max_term_length: int
         :param max_term_length: Maximum length of the generated term
         """
+        if min_term_length is None:
+            min_term_length = 1
         substitutions = ("EE*", "I")
         term = "E"
         term_length = 0

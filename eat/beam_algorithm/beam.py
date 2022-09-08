@@ -1,9 +1,9 @@
 from eat.core.components import ValidTermGenerator, TermOperation
-from eat.core.utilities import get_all_one_and_two_variable_terms, \
-    print_search_summary, condensed_array, combine_postfix
+from eat.core.utilities import print_search_summary, condensed_array, \
+    combine_postfix
 from copy import copy
 from operator import attrgetter
-from random import choice, uniform
+from random import choice
 import multiprocessing as mp
 import logging
 import time
@@ -167,8 +167,7 @@ class BeamEnumerationAlgorithm():
         self.to = term_operation
         self.beam = Beam(beam_width)
         self.vtg = ValidTermGenerator(self.to.term_variables)
-        self.male_terms = \
-            get_all_one_and_two_variable_terms(self.to.term_variables)
+        self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
         self.min_term_length = min_term_length
         self.max_term_length = max_term_length
@@ -423,8 +422,8 @@ class BeamEnumerationAlgorithm():
                 f_node_sol.level)
             if not procs_by_fitness:
                 if verbose:
-                    print(f"!!Skipping {f_node_sol.term}. No processes running "
-                          f"at a level below {f_node_sol.level}!!")
+                    print(f"!!Skipping {f_node_sol.term}. No processes "
+                          f"running at a level below {f_node_sol.level}!!")
                 continue
             least_fit_bp = procs_by_fitness[-1]
 
