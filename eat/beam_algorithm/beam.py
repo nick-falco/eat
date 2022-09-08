@@ -68,7 +68,7 @@ class Node():
 
     def recurse(self):
         node = copy(self)
-        while(node.parent_node is not None):
+        while (node.parent_node is not None):
             # recursively construct the term
             node.parent_node.term = \
                 node.parent_node.term.replace("F", node.term)
@@ -244,7 +244,7 @@ class BeamEnumerationAlgorithm():
 
         random_terms = set()
         # Continuously search for a new solution
-        while(True):
+        while (True):
             random_term = self.get_male_term(
                 generation_method=self.male_term_generation_method
             )
@@ -291,7 +291,7 @@ class BeamEnumerationAlgorithm():
                  beam_width=self.beam_width,
                  is_subbeam=True)
         # Continuously search for a new solution
-        while(True):
+        while (True):
             sol_node = ba.run()
             if direction == "left":
                 new_female_term = combine_postfix(sol_node.term, "F")
@@ -316,7 +316,7 @@ class BeamEnumerationAlgorithm():
     def check_if_has_male_term_solution(self, curr_fnode):
         for mt in self.male_terms:
             male_term_sol = self.to.compute(mt)
-            if(self.to.is_solution(male_term_sol, curr_fnode.array)):
+            if (self.to.is_solution(male_term_sol, curr_fnode.array)):
                 # found a solution
                 return Node(mt, male_term_sol, curr_fnode, curr_fnode.level+1,
                             curr_fnode.to)
@@ -399,7 +399,7 @@ class BeamEnumerationAlgorithm():
                        mp_queue,
                        f_node)
 
-        while(True):
+        while (True):
             f_node_sol = mp_queue.get()
             f_node_sol_parent_proc = \
                 bpm.get_process(f_node_sol.parent_node.proc_hash)

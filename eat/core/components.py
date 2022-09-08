@@ -560,7 +560,7 @@ class ValidTermGenerator():
         term = choice(terms)
         if len(term) > 5:
             substitutions = ("EE*", "I")
-            while("E" in term):
+            while ("E" in term):
                 rand = uniform(0, 1)
                 if rand < prob:
                     index = 0
@@ -570,7 +570,7 @@ class ValidTermGenerator():
         else:
             term = term.replace("E", "I")
         # randomly replace operands
-        while("I" in term):
+        while ("I" in term):
             term = term.replace("I", choice(self.term_variables), 1)
         return term
 
@@ -591,7 +591,7 @@ class ValidTermGenerator():
         term = "E"
         term_length = 0
         # randomly build a term
-        while("E" in term):
+        while ("E" in term):
             rand = uniform(0, 1)
             if rand < prob or term_length < min_term_length:
                 index = 0
@@ -604,7 +604,7 @@ class ValidTermGenerator():
                 break
             term = term.replace("E", substitutions[index], 1)
         # randomly replace operands
-        while("I" in term):
+        while ("I" in term):
             term = term.replace("I", choice(self.term_variables), 1)
         return term
 

@@ -90,7 +90,7 @@ class DeepDrillingAlgorithm():
         n = 1  # get the initial value of n
 
         start = time.time()
-        while(True):
+        while (True):
             new_row = DDA_Row()
             last_row = dda.table[-1]
             n = last_row.n
@@ -102,7 +102,7 @@ class DeepDrillingAlgorithm():
                     generation_method=self.male_term_generation_method)
                 male_term_sol = self.to.compute(male_term)
                 # check to see if there was a variable solution to the term
-                if(self.to.is_solution(male_term_sol, last_row.array)):
+                if (self.to.is_solution(male_term_sol, last_row.array)):
                     self.logger.debug("STEP 1 A")
                     new_row.label = male_term
                     new_row.array = male_term_sol
