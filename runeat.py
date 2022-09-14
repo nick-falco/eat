@@ -29,7 +29,8 @@ def parse_arguments():
                         version=VERSION)
     parser.add_argument('-a', '--algorithm',
                         help="EAT algorithm to run. (default='BEAM')",
-                        type=str, default="BEAM", choices=["DDA", "BEAM"])
+                        type=str, default="BEAM",
+                        choices=["DDA", "BEAM", "LITTLEBEAM"])
     parser.add_argument('-g', '--groupoid',
                         help="Gropoid operation matrix",
                         nargs='+',
@@ -102,6 +103,12 @@ def parse_arguments():
                             type=non_negative_integer,
                             help=("Width of the beam (default=3)"),
                             default=None)
+    beam_group.add_argument('-sbw', '--sub-beam-width',
+                            type=non_negative_integer,
+                            help=("Width of all sub beams (defaults to the "
+                                  "same as the --beam-width). Only applies "
+                                  "the BEAM algorithm."),
+                            default=None)
     beam_group.add_argument('-iva', '--include-validity-array',
                             help=("Whether to include validity array in "
                                   "verbose log output (default=False)"),
@@ -144,6 +151,7 @@ def main():
     # BEAM specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
+    sub_beam_width = args.sub_beam_width
 
     prob = args.probability
     algorithm = args.algorithm
@@ -162,13 +170,15 @@ def main():
                                     male_term_generation_method=mtgm,
                                     term_expansion_probability=prob)
         dda.run(verbose=verbose, print_summary=print_summary)
-    elif algorithm == "BEAM":
+    elif algorithm == "BEAM" or algorithm == "LITTLEBEAM":
         if include_validity_array and not verbose:
             raise ValueError("The --verbose (-v) option must be set for the "
                              "--include-validity-array (-iva) option "
                              "to apply.")
         if beam_width is None:
             beam_width = 3
+        if sub_beam_width is None:
+            sub_beam_width = beam_width
 
         if mtgm == 'random-term-generation' and (mintl or maxtl):
             raise ValueError(
@@ -184,7 +194,9 @@ def main():
                                 min_term_length=mintl,
                                 max_term_length=maxtl,
                                 term_expansion_probability=prob,
-                                beam_width=beam_width)
+                                beam_width=beam_width,
+                                sub_beam_width=sub_beam_width,
+                                is_subbeam=(algorithm=="LITTLEBEAM"))
         execution_results = []
         total_time = 0
         total_term_length = 0

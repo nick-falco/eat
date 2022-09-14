@@ -162,7 +162,7 @@ class BeamEnumerationAlgorithm():
     def __init__(self, groupoid, term_operation, min_term_length=None,
                  max_term_length=None, term_expansion_probability=0.3,
                  male_term_generation_method="GRA", beam_width=3,
-                 is_subbeam=False):
+                 sub_beam_width=3, is_subbeam=False):
         self.grp = groupoid
         self.to = term_operation
         self.beam = Beam(beam_width)
@@ -173,6 +173,7 @@ class BeamEnumerationAlgorithm():
         self.max_term_length = max_term_length
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
+        self.sub_beam_width = sub_beam_width
         self.is_subbeam = is_subbeam
         try:
             mp.set_start_method('fork', force=True)
@@ -288,7 +289,7 @@ class BeamEnumerationAlgorithm():
                  max_term_length=self.max_term_length,
                  term_expansion_probability=self.term_expansion_probability,
                  male_term_generation_method=self.male_term_generation_method,
-                 beam_width=self.beam_width,
+                 beam_width=self.sub_beam_width,
                  is_subbeam=True)
         # Continuously search for a new solution
         while (True):
