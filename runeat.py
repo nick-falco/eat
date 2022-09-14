@@ -196,7 +196,7 @@ def main():
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
                                 sub_beam_width=sub_beam_width,
-                                is_subbeam=(algorithm=="LITTLEBEAM"))
+                                is_subbeam=(algorithm == "LITTLEBEAM"))
         execution_results = []
         total_time = 0
         total_term_length = 0
