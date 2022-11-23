@@ -9,11 +9,11 @@ a second. It has applications in both the fields of Mathematics and Computer Eng
 
 For a development install first download the project and then run
 ```
-pip install -e .
+pip3 install -e .
 ```
 in the root project directory, or run
 ```
-python setup.py develop
+python3 setup.py develop
 ```
 
 <h4>Wiki</h4>
