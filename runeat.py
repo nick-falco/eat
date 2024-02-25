@@ -89,7 +89,7 @@ def parse_arguments():
                            help=("For random term generation specify the "
                                  "probability of growing the random term. "
                                  "Must be a number between 0 and 1. "
-                                 "(default = 0.025 = 2.5%)"),
+                                 "(default = 0.025 = 2.5%%)"),
                            type=restricted_float, default=0.025)
     log_group = parser.add_argument_group('Logging verbosity options')
     log_group.add_argument('-v', '--verbose', help="Print verbose output",
