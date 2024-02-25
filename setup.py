@@ -15,18 +15,22 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 url = "https://github.com/nick-falco/eat"
 setup(
-    name='EAT: Evolution of Algebraic Terms',
+    name='evolution_of_algebraic_terms',
     version=VERSION,
     packages=['eat'],
     author="Nicholas Falco, David M. Clark",
     author_email="ncfalco@gmail.com",
     include_package_data=True,
     install_requires=[
+        'matplotlib>=3.6,<4',
     ],
     license='Apache License, Version 2.0',
-    description=('EAT is software implementation of the algorithms described '
-                 'in papers Evolution of Algebraic Terms (EAT), published in '
-                 'the International Journal of Algebra and Computation.'),
+    keywords=("evolutionary-computation genetics ternary-descriminator "
+              "idemprimality groupoid machine-learning artifical-intellegence "
+              "ai"),
+    description=("EAT is software implementation of the algorithms described "
+                 "in the paper Evolution of Algebraic Terms 4: Biological "
+                 "Beam Algorithms."),
     long_description=README,
     url=url,
     classifiers=[
