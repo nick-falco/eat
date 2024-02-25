@@ -4,13 +4,13 @@ import argparse
 import platform
 import time
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
-from eat.deep_drilling_agorithm.dda import DeepDrillingAlgorithm
+from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
 from eat.utilities.argparse_types import non_negative_integer, restricted_float
 
 
 def parse_arguments():
-    version_path = 'eat/VERSION'
+    version_path = 'VERSION'
     VERSION = open(os.path.join(os.path.dirname(__file__),
                                 version_path)).read()
     VERSION = VERSION.replace("\n", "")

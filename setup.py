@@ -17,7 +17,13 @@ url = "https://github.com/nick-falco/eat"
 setup(
     name='evolution_of_algebraic_terms',
     version=VERSION,
-    packages=['eat'],
+    packages=['eat',
+              'eat/beam_algorithm',
+              'eat/core',
+              'eat/deep_drilling_algorithm',
+              'eat/static',
+              'eat/utilities'],
+    package_data={'eat': ['VERSION']},
     author="Nicholas Falco, David M. Clark",
     author_email="ncfalco@gmail.com",
     include_package_data=True,
@@ -42,7 +48,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'eat=runeat:main'
+            'eat=eat.runeat:main'
         ]
     }
 )

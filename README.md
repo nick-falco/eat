@@ -1,11 +1,16 @@
 <h3 align="center">Evolution of Algebraic Terms</h3>
 
 <p>
-EAT is software implementation of the algorithms described in the paper Evolution of Algebraic Terms 4: Biological Beam Algorithms. Given an arbitrary performance specification, the program systematically designs a digital ciruit using binary logic on groupoids of size 3 or larger. The program's success is documented by its ability to consistently find such designs from an incredibly vast search space in fractions of
+EAT is software implementation of the algorithms described in the paper Evolution of Algebraic Terms (EAT) 4: Biological Beam Algorithms. Given an arbitrary performance specification, the program systematically designs a digital ciruit using binary logic on groupoids of size 3 or larger. The program's success is documented by its ability to consistently find such designs from an incredibly vast search space in fractions of
 a second. It has applications in both the fields of Mathematics and Computer Engineering.
 </p>
 
 <h4>Installation</h4>
+
+For a normal install run
+```
+pip install evolution-of-algebraic-terms
+```
 
 For a development install first download the project and then run
 ```
