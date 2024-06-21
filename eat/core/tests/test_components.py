@@ -93,20 +93,5 @@ class TestTermOperation(unittest.TestCase):
              [0, 1], [0], [2], [1], [2], [2], [2], [1], [1], [1], [1], [1],
              [1], [0], [2], [1]])
 
-
-class TestValidTermGenerator(unittest.TestCase):
-
-    def test_random_12_terms(self):
-        vtg = ValidTermGenerator(["x", "y", "z"])
-        rand_term = vtg.random_12_terms()
-        self.assertIn(rand_term,
-                      ['x', 'y', 'z', 'xx*', 'xy*', 'xz*', 'yx*', 'yy*',
-                       'yz*', 'zx*', 'zy*', 'zz*'])
-
-        vtg = ValidTermGenerator(["x", "y", "z", "a"])
-        with self.assertRaises(RuntimeError):
-            vtg.random_12_terms()
-
-
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
 from eat.core.components import ValidTermGenerator, TermOperation
 from eat.core.utilities import print_search_summary, condensed_array, \
     combine_postfix
+from collections import deque
 from copy import copy
 from operator import attrgetter
 from random import choice
@@ -22,6 +23,8 @@ def exit_gracefully(func):
 
 class Beam():
 
+    __slots__ = ['width', 'levels']
+
     def __init__(self, width):
         self.width = width
         self.levels = []
@@ -30,9 +33,7 @@ class Beam():
         self.levels[node.level].append(node)
 
     def add_level(self, nodes_list=None):
-        if not nodes_list:
-            nodes_list = []
-        self.levels.append(nodes_list)
+        self.levels.append(nodes_list if nodes_list else [])
 
     def get_level(self, level):
         if level < self.get_height():
@@ -126,7 +127,7 @@ class BeamProcess():
     def __init__(self, process_hash):
         self.proc = None
         self.hash = process_hash
-        self.child_nodes = []
+        self.child_nodes = deque()
         self.node = None
 
     def run(self, target, queue, node, **kwargs):
@@ -148,7 +149,7 @@ class BeamProcess():
 
     def deactivate(self):
         self.terminate()
-        self.child_nodes = []
+        self.child_nodes = deque()
 
     def is_alive(self):
         return self.proc.is_alive()
@@ -159,22 +160,21 @@ class BeamProcess():
 
 class BeamEnumerationAlgorithm():
 
-    def __init__(self, groupoid, term_operation, min_term_length=None,
-                 max_term_length=None, term_expansion_probability=0.3,
+    def __init__(self, groupoid, term_operation, algorithm,
+                 term_expansion_probability=0.1,
                  male_term_generation_method="GRA", beam_width=3,
-                 sub_beam_width=3, is_subbeam=False):
+                 sub_beam_width=3):
         self.grp = groupoid
         self.to = term_operation
+        self.algorithm = algorithm
+        self.is_subbeam = (algorithm == "FBA")
         self.beam = Beam(beam_width)
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self.male_terms = self.to.term_variables
         self.term_expansion_probability = term_expansion_probability
-        self.min_term_length = min_term_length
-        self.max_term_length = max_term_length
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
         self.sub_beam_width = sub_beam_width
-        self.is_subbeam = is_subbeam
         try:
             mp.set_start_method('fork', force=True)
         except RuntimeError:
@@ -190,8 +190,6 @@ class BeamEnumerationAlgorithm():
         if generation_method == "GRA":
             return self.vtg.generate(
                 algorithm=generation_method,
-                min_term_length=self.min_term_length,
-                max_term_length=self.max_term_length,
                 prob=self.term_expansion_probability,
                 **kwargs)
         elif generation_method == "random-term-generation":
@@ -220,10 +218,10 @@ class BeamEnumerationAlgorithm():
         for direction in direction_order:
             new_female_term = self.create_female_term(male_term,
                                                       direction)
-            has_validity_array, validity_array = \
+            is_valid, validity_array = \
                 self.to.compute_validity_array(new_female_term,
                                                curr_fnode.array)
-            if has_validity_array:
+            if is_valid:
                 return Node(new_female_term, validity_array, curr_fnode,
                             curr_fnode.level+1, curr_fnode.to)
         else:
@@ -285,12 +283,10 @@ class BeamEnumerationAlgorithm():
                                   target=target_array,
                                   term_variables=self.to.term_variables)
         ba = BeamEnumerationAlgorithm(
-                 self.grp, target_to, min_term_length=self.min_term_length,
-                 max_term_length=self.max_term_length,
+                 self.grp, target_to, "FBA",
                  term_expansion_probability=self.term_expansion_probability,
                  male_term_generation_method=self.male_term_generation_method,
-                 beam_width=self.sub_beam_width,
-                 is_subbeam=True)
+                 beam_width=self.sub_beam_width)
         # Continuously search for a new solution
         while (True):
             sol_node = ba.run()
@@ -298,10 +294,10 @@ class BeamEnumerationAlgorithm():
                 new_female_term = combine_postfix(sol_node.term, "F")
             else:
                 new_female_term = combine_postfix("F", sol_node.term)
-            has_validity_array, validity_array = \
+            is_valid, validity_array = \
                 self.to.compute_validity_array(new_female_term,
                                                curr_fnode.array)
-            if has_validity_array is False:
+            if is_valid is False:
                 raise RuntimeError("A {} array solution was found that is not "
                                    "valid! Something went wrong!"
                                    .format(direction))
@@ -327,7 +323,7 @@ class BeamEnumerationAlgorithm():
         if self.beam_width > 1:
             f_node_sol_level = [bn.term for bn in
                                 self.beam.get_level(f_node_sol.level)]
-            print("{}: Found {}valid term {} of fitness {} at level {} {}"
+            print("{}: Found {}valid term {} of fitness {:.2e} at level {} {}"
                   .format(
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
@@ -343,12 +339,12 @@ class BeamEnumerationAlgorithm():
                         if include_validity_array else "")
                     ))
         else:
-            print("{}: Found valid term {} of fitness {} at level {} {}"
+            print("{}: Found valid term {} of fitness {:.2e} at level {} {}"
                   .format(
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
                     f_node_sol.term,
-                    f_node_sol.fitness,
+                    f_node_sol.node.fitness,
                     f_node_sol.level,
                     ("with array {}"
                         .format(condensed_array(f_node_sol.array,
@@ -363,7 +359,7 @@ class BeamEnumerationAlgorithm():
         f_node = Node("F", self.to.target, None, 0, self.to)
         self.beam.add_level([f_node for _ in range(0, self.beam_width)])
 
-        start = time.time()
+        start = time.perf_counter()
 
         mp_mngr = mp.Manager()
         mp_queue = mp_mngr.Queue()
@@ -390,7 +386,7 @@ class BeamEnumerationAlgorithm():
             bp = BeamProcess("P{}".format(idx))
             bpm.add_process(bp)
             f_node.proc_hash = bp.hash
-            if not self.is_subbeam:
+            if self.algorithm == "MFBA":
                 bp.run(self.search_for_valid_female_node_using_lr_array,
                        mp_queue,
                        f_node,
@@ -438,7 +434,7 @@ class BeamEnumerationAlgorithm():
                         f"{f_node_sol_parent_proc.hash} to search for "
                         f"a new term. "
                         f"{f_node_sol.fitness} < {least_fit_bp.node.fitness}")
-                if not self.is_subbeam:
+                if self.algorithm == "MFBA":
                     f_node_sol_parent_proc.run(
                         self.search_for_valid_female_node_using_lr_array,  # noqa
                         mp_queue,
@@ -449,7 +445,27 @@ class BeamEnumerationAlgorithm():
                         self.search_for_valid_female_node,
                         mp_queue,
                         f_node_sol.parent_node)
-            elif f_node_sol.term not in \
+            elif self.algorithm == "SBA" and f_node_sol.term not in \
+                    [t.term for t in self.beam.get_level(f_node_sol.level)]:
+                # add node to beam and parent process child nodes
+                self.beam.add_node(f_node_sol)
+                f_node_sol_parent_proc.child_nodes.append(f_node_sol)
+                # check if we need to run the next full level or continue searching
+                if self.beam.get_highest_full_level_number() == f_node_sol.level:
+                    # beam is full, start the next level
+                    nodes = self.beam.get_level(f_node_sol.level)
+                    for i, proc in enumerate(bpm.get_processes()):
+                        proc.run(
+                            self.search_for_valid_female_node,
+                            mp_queue,
+                            nodes[i])
+                else:
+                    # continue searching until the next level is full
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node,
+                        mp_queue,
+                        f_node_sol.parent_node)
+            elif self.algorithm in ["FBA", "MFBA"] and f_node_sol.term not in \
                     [t.term for t in self.beam.get_level(f_node_sol.level)]:
                 # add node to beam and parent process child nodes
                 self.beam.add_node(f_node_sol)
@@ -463,7 +479,7 @@ class BeamEnumerationAlgorithm():
                     print(f"{least_fit_bp.hash}: Reassigned "
                           f"{least_fit_bp.hash} to work on the newly "
                           f"found female term {f_node_sol.term}")
-                if not self.is_subbeam:
+                if self.algorithm == "MFBA":
                     least_fit_bp.run(
                         self.search_for_valid_female_node_using_lr_array,  # noqa
                         mp_queue,
@@ -480,7 +496,7 @@ class BeamEnumerationAlgorithm():
                               f"{f_node_sol_parent_proc.hash} to "
                               f"search for a new child female term "
                               f"different than {f_node_sol.term}")
-                    if not self.is_subbeam:
+                    if self.algorithm == "MFBA":
                         f_node_sol_parent_proc.run(
                             self.search_for_valid_female_node_using_lr_array,
                             mp_queue,
@@ -497,7 +513,7 @@ class BeamEnumerationAlgorithm():
                           f"Rerun {f_node_sol_parent_proc.hash} to "
                           f"search for a new child female term "
                           f"different than {f_node_sol.term}")
-                if not self.is_subbeam:
+                if self.algorithm == "MFBA":
                     f_node_sol_parent_proc.run(
                         self.search_for_valid_female_node_using_lr_array,
                         mp_queue,
@@ -513,7 +529,7 @@ class BeamEnumerationAlgorithm():
                     [(bp.hash,
                       bp.node.level,
                       len(bp.child_nodes),
-                      bp.node.fitness,
+                      f"{bp.node.fitness:.2e}",
                       bp.is_alive())
                      for bp in bpm.get_processes()]))
 
@@ -522,7 +538,7 @@ class BeamEnumerationAlgorithm():
 
         node = sol_node.recurse()
 
-        end = time.time()
+        end = time.perf_counter()
 
         if (print_summary or verbose):
             print_search_summary(node.term, self.to, self.grp, end - start)

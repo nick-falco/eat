@@ -67,7 +67,7 @@ def split_male_term(term):
 
 
 def combine_postfix(term1, term2):
-    return "{}{}*".format(term1, term2)
+    return term1 + term2 + "*"
 
 
 def condensed_array(array, groupoid_size):
@@ -82,7 +82,7 @@ def print_search_summary(term, term_operation, groupoid, search_time):
     print("Computed term:")
     print(term)
     print("Term length  = {}".format(len(term)))
-    print("Search time  = {} sec".format(search_time))
+    print("Search time  = {} sec".format(round(search_time, 2)))
     print("Term array   = {}".format(
           condensed_array(term_operation.compute(term), groupoid.size)))
     print("Target array = {}".format(

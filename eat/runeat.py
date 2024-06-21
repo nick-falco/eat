@@ -28,18 +28,16 @@ def parse_arguments():
                         action='version',
                         version=VERSION)
     parser.add_argument('-a', '--algorithm',
-                        help="EAT algorithm to run. (default='BEAM')",
-                        type=str, default="BEAM",
-                        choices=["DDA", "BEAM", "LITTLEBEAM"])
+                        help="EAT algorithm to run. (default='MFBA')",
+                        type=str, default="MFBA",
+                        choices=["DDA", "MFBA", "FBA", "SBA"])
     parser.add_argument('-g', '--groupoid',
                         help="Gropoid operation matrix",
                         nargs='+',
-                        type=non_negative_integer)
+                        type=non_negative_integer,
+                        default=[2, 1, 2, 1, 0, 0, 0, 0, 1])
     parser.add_argument('-rc', '--run-count',
-                        help="Run the algorithm rc times. Write the run "
-                             "times and term length for each execution to a "
-                             "file named "
-                             "beam_algorithm_execution_times.csv",
+                        help="Run the algorithm rc times.",
                         type=non_negative_integer,
                         default=1)
     group = parser.add_mutually_exclusive_group()
@@ -77,20 +75,12 @@ def parse_arguments():
                                  "Otherwise, if the term tree has less than "
                                  "4 variable occurances it is used as is."),
                            default="random-term-generation")
-    vtg_group.add_argument('-mintl', '--min-term-length',
-                           help=("Minimum length of a randomly generated "
-                                 "term. (default=None) (GRA only)"),
-                           type=non_negative_integer, default=None),
-    vtg_group.add_argument('-maxtl', '--max-term-length',
-                           help=("Maximum length of a randomly generated "
-                                 "term. (default=None) (GRA only)"),
-                           type=non_negative_integer, default=None),
     vtg_group.add_argument('-p', '--probability',
                            help=("For random term generation specify the "
                                  "probability of growing the random term. "
                                  "Must be a number between 0 and 1. "
-                                 "(default = 0.025 = 2.5%%)"),
-                           type=restricted_float, default=0.025)
+                                 "(default = 0.1 = 10%%)"),
+                           type=restricted_float, default=0.1)
     log_group = parser.add_argument_group('Logging verbosity options')
     log_group.add_argument('-v', '--verbose', help="Print verbose output",
                            action='store_true')
@@ -107,7 +97,7 @@ def parse_arguments():
                             type=non_negative_integer,
                             help=("Width of all sub beams (defaults to the "
                                   "same as the --beam-width). Only applies "
-                                  "the BEAM algorithm."),
+                                  "the MFBA algorithm."),
                             default=None)
     beam_group.add_argument('-iva', '--include-validity-array',
                             help=("Whether to include validity array in "
@@ -141,14 +131,12 @@ def main():
                                                args.target_free_count)
 
     mtgm = args.male_term_generation_method
-    mintl = args.min_term_length
-    maxtl = args.max_term_length
 
     verbose = args.verbose
     print_summary = args.print_summary
     run_count = args.run_count
 
-    # BEAM specific arguments
+    # MFBA specific arguments
     include_validity_array = args.include_validity_array
     beam_width = args.beam_width
     sub_beam_width = args.sub_beam_width
@@ -158,19 +146,20 @@ def main():
     if algorithm == "DDA":
         if run_count > 1:
             raise ValueError("The --run-count (-rc) option "
-                             "only applies to the BEAM algorithm.")
+                             "only applies to the MFBA algorithm.")
         if include_validity_array:
             raise ValueError("The --include-validity-array (-iva) option "
-                             "only applies to the BEAM algorithm.")
+                             "only applies to the MFBA algorithm.")
         elif beam_width:
             raise ValueError("The --beam-width (-bw) option only applies to "
-                             "the BEAM algorithm.")
+                             "the MFBA algorithm.")
         # run the deep drilling algorithm
         dda = DeepDrillingAlgorithm(grp, to,
                                     male_term_generation_method=mtgm,
                                     term_expansion_probability=prob)
         dda.run(verbose=verbose, print_summary=print_summary)
-    elif algorithm == "BEAM" or algorithm == "LITTLEBEAM":
+    elif (algorithm == "MFBA" or algorithm == "FBA" or
+          algorithm == "SBA"):
         if include_validity_array and not verbose:
             raise ValueError("The --verbose (-v) option must be set for the "
                              "--include-validity-array (-iva) option "
@@ -180,27 +169,19 @@ def main():
         if sub_beam_width is None:
             sub_beam_width = beam_width
 
-        if mtgm == 'random-term-generation' and (mintl or maxtl):
-            raise ValueError(
-                "The --min-term-length (-mintl) and --max-term-length "
-                "options only apply when the --male-term-generation-method "
-                "is set to 'GRA'.")
-
         # run the beam algorithm
         beam = BeamEnumerationAlgorithm(
                                 grp,
                                 to,
+                                algorithm,
                                 male_term_generation_method=mtgm,
-                                min_term_length=mintl,
-                                max_term_length=maxtl,
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
-                                sub_beam_width=sub_beam_width,
-                                is_subbeam=(algorithm == "LITTLEBEAM"))
+                                sub_beam_width=sub_beam_width)
         execution_results = []
         total_time = 0
         total_term_length = 0
-        for _ in range(run_count):
+        for i in range(run_count):
             start = time.time()
             node = beam.run(verbose=verbose, print_summary=print_summary,
                             include_validity_array=include_validity_array)
@@ -217,19 +198,8 @@ def main():
                 "search_time": search_time,
                 "term_length": term_length
             })
-
-        if print_summary and run_count > 1:
-            result_file_name = "beam_algorithm_execution_times.csv"
-            with open(result_file_name, "w") as results_file:
-                keys = execution_results[0].keys()
-                dict_writer = csv.DictWriter(results_file, keys)
-                dict_writer.writeheader()
-                dict_writer.writerows(execution_results)
-            average_search_time = round(total_time / run_count, 2)
-            average_term_length = round(total_term_length / run_count, 2)
-            print(f"Average serach time = {average_search_time}")
-            print(f"Average term length = {average_term_length}")
-            print("----")
+            if not (print_summary or verbose):
+                print(node.term if i == 0 else "\n" + node.term)
 
 
 if __name__ == '__main__':

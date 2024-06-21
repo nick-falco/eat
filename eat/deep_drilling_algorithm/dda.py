@@ -73,8 +73,10 @@ class DeepDrillingAlgorithm():
         if generation_method == "GRA":
             return self.vtg.generate(algorithm="GRA",
                                      prob=self.term_expansion_probability)
-        elif generation_method == "random-12-terms":
-            return self.vtg.generate(algorithm="random-12-terms")
+        elif generation_method == "random-term-generation":
+            return self.vtg.generate(algorithm=generation_method,
+                                     prob=self.term_expansion_probability)
+
 
     def run(self, verbose=False, print_summary=False):
         pds = []  # push down stack containing number of terms

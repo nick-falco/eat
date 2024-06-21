@@ -1,9 +1,8 @@
 import itertools
 import math
 from random import choice, uniform
-from collections import OrderedDict
-from eat.core.utilities import subset_sums, get_term_variables, \
-    get_all_one_and_two_variable_terms
+from collections import OrderedDict, deque
+from eat.core.utilities import subset_sums, get_term_variables
 
 
 class Groupoid():
@@ -437,12 +436,8 @@ class TermOperation():
         """
         Returns count of input_array rows that are correct in the target_array
         """
-        count = 0
-        for idx, val_array in enumerate(input_array):
-            for val in val_array:
-                if val in target_array[idx]:
-                    count = count + 1
-                    break
+        count = sum(1 for idx, val_array in enumerate(input_array)
+                    if set(val_array).intersection(set(target_array[idx])))
         return count
 
     def is_solution(self, input_array, target_array):
@@ -461,12 +456,12 @@ class TermOperation():
         else:
             return False
 
-    def solve(self, term, operator="*"):
+    def solve(self, term):
         """
         Solves the value of a term containing ony numbers and operator values
         """
-        pds = []
-        for i in list(term):
+        pds = deque()
+        for i in term:
             if i.isdigit():
                 pds.append(int(i))
             else:
@@ -476,7 +471,7 @@ class TermOperation():
                                                    val2))
         return pds.pop()
 
-    def compute(self, term, operator="*"):
+    def compute(self, term):
         """
         Computes output array for the given term
 
@@ -504,27 +499,24 @@ class TermOperation():
         """
 
         def is_target_full(target):
-            if len(target) >= self.groupoid.size:
-                return True
-            else:
-                return False
+            return len(target) == self.groupoid.size
 
         def split_female_term(f_term):
             """
             Splits a female term and returns the side that the "F" was on and
-            the male subterm
+            the male subterm. Returns True for Left and False for Right.
             """
             if f_term[-1] == "*":
                 f_term = f_term[:-1]
             parts = f_term.split("F")
             if parts[0] == "":
-                return "left", parts[1]
+                return True, parts[1]
             else:
-                return "right", parts[0]
+                return False, parts[0]
 
-        has_validity_array = True
+        is_valid = True
         validity_array = [[] for _ in range(0, len(solution_array))]
-        side, subterm = split_female_term(female_term)
+        is_left_side, subterm = split_female_term(female_term)
         for idx, term_variables_mapping in \
                 enumerate(self.mapped_input.values()):
             if is_target_full(solution_array[idx]):
@@ -537,36 +529,34 @@ class TermOperation():
                 subterm_sol = self.solve(term)
                 # see if one of the input values provides a solution
                 for input_val in range(0, self.groupoid.size):
-                    if side == "left":
+                    if is_left_side:
                         sol = self.groupoid.get_value(input_val, subterm_sol)
-                    elif side == "right":
+                    else:
                         sol = self.groupoid.get_value(subterm_sol, input_val)
                     if sol in solution_array[idx]:
                         validity_array[idx].append(input_val)
                 if len(validity_array[idx]) == 0:
-                    has_validity_array = False
+                    is_valid = False
                     break
-        return has_validity_array, validity_array
+        return is_valid, validity_array
 
 
 class ValidTermGenerator():
 
+    terms = ['E', 'EE*', 'EE*E*', 'EEE**', 'EE*EE**', 'EEE*E**', 'EEEE***',
+             'EEE**E*', 'EE*E*E*']
+
     def __init__(self, term_variables):
         self.term_variables = term_variables
 
-    def random_term_generation(self, prob=0.025):
-        terms = ['E', 'EE*', 'EE*E*', 'EEE**', 'EE*EE**', 'EEE*E**', 'EEEE***',
-                 'EEE**E*', 'EE*E*E*']
-        term = choice(terms)
+    def random_term_generation(self, prob=0.1):
+        term = choice(ValidTermGenerator.terms)
         if len(term) > 5:
             substitutions = ("EE*", "I")
             while ("E" in term):
                 rand = uniform(0, 1)
-                if rand < prob:
-                    index = 0
-                else:
-                    index = 1
-                term = term.replace("E", substitutions[index], 1)
+                term = term.replace("E",
+                                    substitutions[0 if rand < prob else 1], 1)
         else:
             term = term.replace("E", "I")
         # randomly replace operands
@@ -574,49 +564,24 @@ class ValidTermGenerator():
             term = term.replace("I", choice(self.term_variables), 1)
         return term
 
-    def gamblers_ruin_algorithm(self, prob=0.3,
-                                min_term_length=None,
-                                max_term_length=None):
+    def gamblers_ruin_algorithm(self, prob=0.1):
         """
         Generate a random term using the gamblers ruin algorithm
 
         :type prop: float
         :param prob: Probability of growing the size of a random term
-        :type max_term_length: int
-        :param max_term_length: Maximum length of the generated term
         """
-        if min_term_length is None:
-            min_term_length = 1
         substitutions = ("EE*", "I")
         term = "E"
-        term_length = 0
         # randomly build a term
         while ("E" in term):
             rand = uniform(0, 1)
-            if rand < prob or term_length < min_term_length:
-                index = 0
-                term_length += 1
-            else:
-                index = 1
-            if (max_term_length is not None and
-                    term_length >= max_term_length):
-                term = term.replace("E", "I")
-                break
-            term = term.replace("E", substitutions[index], 1)
+            term = term.replace("E",
+                                substitutions[0 if rand < prob else 1], 1)
         # randomly replace operands
         while ("I" in term):
             term = term.replace("I", choice(self.term_variables), 1)
         return term
-
-    def random_12_terms(self):
-        """
-        Select a term randomly from the set of 12 one and two variable terms
-        """
-        if (len(self.term_variables) != 3):
-            raise RuntimeError("The 'random_12_terms' term generation method "
-                               "only applies to 3 variable term operations.")
-        combinations = get_all_one_and_two_variable_terms(self.term_variables)
-        return choice(combinations)
 
     def generate(self, algorithm="GRA", **kwargs):
         if kwargs is None:
