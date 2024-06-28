@@ -77,7 +77,6 @@ class DeepDrillingAlgorithm():
             return self.vtg.generate(algorithm=generation_method,
                                      prob=self.term_expansion_probability)
 
-
     def run(self, verbose=False, print_summary=False):
         pds = []  # push down stack containing number of terms
         pds.append(1)

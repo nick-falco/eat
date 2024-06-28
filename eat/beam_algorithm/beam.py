@@ -71,7 +71,7 @@ class Node():
 
     def elapsed_time(self, reference_time):
         return self.creation_time - reference_time if self.parent_node else 0
-    
+
     def time_since_parent_creation(self):
         return time.perf_counter() - self.parent_node.creation_time \
             if self.parent_node else 0
@@ -459,8 +459,10 @@ class BeamEnumerationAlgorithm():
                 # add node to beam and parent process child nodes
                 self.beam.add_node(f_node_sol)
                 f_node_sol_parent_proc.child_nodes.append(f_node_sol)
-                # check if we need to run the next full level or continue searching
-                if self.beam.get_highest_full_level_number() == f_node_sol.level:
+                # check if we need to run the next full level or continue
+                # searching
+                if self.beam.get_highest_full_level_number() == \
+                        f_node_sol.level:
                     # beam is full, start the next level
                     nodes = self.beam.get_level(f_node_sol.level)
                     for i, proc in enumerate(bpm.get_processes()):

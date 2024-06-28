@@ -3,3 +3,5 @@
 *.o
 *.egg-info*
 env/*
+build/*
+dist/*

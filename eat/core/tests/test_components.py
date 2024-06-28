@@ -1,6 +1,6 @@
 import unittest
 from eat.core.utilities import postfix_to_infix
-from eat.core.components import TermOperation, Groupoid, ValidTermGenerator
+from eat.core.components import TermOperation, Groupoid
 
 
 class TestTermOperation(unittest.TestCase):
@@ -92,6 +92,7 @@ class TestTermOperation(unittest.TestCase):
             [[0], [2], [1], [0], [0], [0], [0], [0], [0], [0, 1], [0, 1],
              [0, 1], [0], [2], [1], [2], [2], [2], [1], [1], [1], [1], [1],
              [1], [0], [2], [1]])
+
 
 if __name__ == "__main__":
     unittest.main()
