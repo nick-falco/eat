@@ -21,4 +21,5 @@ jobs:
       - name: Run Python Unit Tests
         shell: bash
         run: |
-          python runtests.py
+          pip install -e .
+          eat-tests

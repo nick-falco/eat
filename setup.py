@@ -47,7 +47,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'eat=eat.runeat:main'
+            'eat=eat.runeat:main',
+            'eat-tests=eat.runtests:main'
         ]
     }
 )
