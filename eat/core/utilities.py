@@ -1,5 +1,7 @@
 import string
 import itertools
+from copy import deepcopy
+from decimal import Decimal
 
 
 def subset_sums(array, target, length):
@@ -74,16 +76,42 @@ def condensed_array(array, groupoid_size):
     return [v if len(v) != groupoid_size else "~" for v in array]
 
 
-def print_search_summary(term, term_operation, groupoid, search_time):
-    print("Summary:")
+def get_creation_history(node, algorithm_start_time):
+    history = ["Level, Term, Term Length, Time Since Parent Creation, "
+               "Time Since Start, Fitness"]
+    while node is not None:
+        node = deepcopy(node)
+        history.append(
+            f"{node.level}, "
+            f"{node.term}, "
+            f"{len(node.term)}, "
+            f"{round(node.time_since_parent_creation(), 2)} sec, "
+            f"{round(node.elapsed_time(algorithm_start_time), 2)} sec, "
+            f"{Decimal(node.fitness):.2e}")
+        node = deepcopy(node.parent_node)
+    return history
+
+
+def print_search_summary(node, last_node, term_operation, groupoid,
+                         algorithm_start_time, algorithm_end_time,
+                         show_creation_history=False):
+    print("--------")
+    print("Summary")
     print("--------")
     print("Groupoid used:")
     print(groupoid)
     print("Computed term:")
-    print(term)
-    print("Term length  = {}".format(len(term)))
-    print("Search time  = {} sec".format(round(search_time, 2)))
+    print(node.term)
+    print("Term length  = {}".format(len(node.term)))
+    print("Search time  = {} sec".format(
+        round(algorithm_end_time - algorithm_start_time, 2)))
     print("Term array   = {}".format(
-          condensed_array(term_operation.compute(term), groupoid.size)))
+          condensed_array(term_operation.compute(node.term), groupoid.size)))
     print("Target array = {}".format(
           condensed_array(term_operation.target, groupoid.size)))
+    if show_creation_history:
+        print("-----------------")
+        print("Creation History")
+        print("-----------------")
+        for info in get_creation_history(last_node, algorithm_start_time):
+            print(info)

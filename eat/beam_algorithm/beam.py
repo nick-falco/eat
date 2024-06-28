@@ -2,7 +2,8 @@ from eat.core.components import ValidTermGenerator, TermOperation
 from eat.core.utilities import print_search_summary, condensed_array, \
     combine_postfix
 from collections import deque
-from copy import copy
+from copy import deepcopy
+from decimal import Decimal
 from operator import attrgetter
 from random import choice
 import multiprocessing as mp
@@ -66,14 +67,22 @@ class Node():
         self.level = level
         self.proc_hash = None
         self.fitness = self.to.calucate_number_pos_sol(self.array)
+        self.creation_time = time.perf_counter()
+
+    def elapsed_time(self, reference_time):
+        return self.creation_time - reference_time if self.parent_node else 0
+    
+    def time_since_parent_creation(self):
+        return time.perf_counter() - self.parent_node.creation_time \
+            if self.parent_node else 0
 
     def recurse(self):
-        node = copy(self)
+        node = deepcopy(self)
         while (node.parent_node is not None):
             # recursively construct the term
             node.parent_node.term = \
                 node.parent_node.term.replace("F", node.term)
-            node = node.parent_node
+            node = deepcopy(node.parent_node)
         return node
 
 
@@ -331,7 +340,7 @@ class BeamEnumerationAlgorithm():
                         if f_node_sol.term in f_node_sol_level
                         else ""),
                     f_node_sol.term,
-                    f_node_sol.fitness,
+                    Decimal(f_node_sol.fitness),
                     f_node_sol.level,
                     ("with array {}"
                         .format(condensed_array(f_node_sol.array,
@@ -529,7 +538,7 @@ class BeamEnumerationAlgorithm():
                     [(bp.hash,
                       bp.node.level,
                       len(bp.child_nodes),
-                      f"{bp.node.fitness:.2e}",
+                      f"{Decimal(bp.node.fitness):.2e}",
                       bp.is_alive())
                      for bp in bpm.get_processes()]))
 
@@ -541,7 +550,8 @@ class BeamEnumerationAlgorithm():
         end = time.perf_counter()
 
         if (print_summary or verbose):
-            print_search_summary(node.term, self.to, self.grp, end - start)
+            print_search_summary(node, sol_node, self.to, self.grp, start, end,
+                                 show_creation_history=verbose)
         else:
             if verbose:
                 print(node.term)

@@ -21,7 +21,6 @@ setup(
               'eat/beam_algorithm',
               'eat/core',
               'eat/deep_drilling_algorithm',
-              'eat/static',
               'eat/utilities'],
     package_data={'eat': ['VERSION']},
     author="Nicholas Falco, David M. Clark",
