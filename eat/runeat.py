@@ -145,13 +145,13 @@ def main():
     if algorithm == "DDA":
         if run_count > 1:
             raise ValueError("The --run-count (-rc) option "
-                             "only applies to the MFBA algorithm.")
+                             "only applies to the beam algorithms.")
         if include_validity_array:
             raise ValueError("The --include-validity-array (-iva) option "
-                             "only applies to the MFBA algorithm.")
+                             "only applies to the beam algorithms.")
         elif beam_width:
             raise ValueError("The --beam-width (-bw) option only applies to "
-                             "the MFBA algorithm.")
+                             "the beam algorithms.")
         # run the deep drilling algorithm
         dda = DeepDrillingAlgorithm(grp, to,
                                     male_term_generation_method=mtgm,
