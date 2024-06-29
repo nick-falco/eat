@@ -6,6 +6,8 @@ Script to run all tests in the entire project
 import unittest
 from sys import exit
 from eat.core.tests.test_components import TestTermOperation
+from eat.core.tests.test_utilities import TestUtilities
+from eat.tests.test_runeat import TestRunEAT
 
 
 def run_test(class_name):
@@ -15,7 +17,7 @@ def run_test(class_name):
 
 
 def main():
-    tests = [TestTermOperation]
+    tests = [TestTermOperation, TestUtilities, TestRunEAT]
     passed = True
     for test_class in tests:
         test_result = run_test(test_class)
