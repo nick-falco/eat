@@ -12,6 +12,13 @@ class DDA_Row():
         self.label = label  # label for type of row T, B, L, or Term
         self.array = array
         self.m = m  # keep track of highest value n introduced so far
+    
+    @property
+    def term(self):
+        """
+        Shim to return the term for the print_search_summary method.
+        """
+        return self.label
 
     def __str__(self):
         return ("%s\t%s\t%10s\t%60s...\t%5s" % (self.N, self.n, self.label,
@@ -153,13 +160,13 @@ class DeepDrillingAlgorithm():
                     new_row.m = m
             dda.table.append(new_row)
             N = N + 1
-        s = dda.table.pop()
+        sol = dda.table.pop()
         end = time.time()
 
         if (verbose):
             print(dda)
             print("")
         if (print_summary or verbose):
-            print_search_summary(s.label, self.to, self.grp, end - start)
+            print_search_summary(sol, sol, self.to, self.grp, start, end)
         else:
-            print(s.label)
+            print(sol.label)
