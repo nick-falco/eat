@@ -115,3 +115,18 @@ def print_search_summary(node, last_node, term_operation, groupoid,
         print("-----------------")
         for info in get_creation_history(last_node, algorithm_start_time):
             print(info)
+
+
+def print_execution_results_summary(execution_results, run_count,
+                                    total_time, total_term_length):
+    avg_time = round(total_time / run_count, 2)
+    avg_term_length = round(total_term_length / run_count, 2)
+    print("-----------------------------")
+    print(f"Execution results for {run_count} runs")
+    print("-----------------------------")
+    print("Run, Search Time (sec), Term Length")
+    for i, result in enumerate(execution_results):
+        print(f"{i+1}, {result['search_time']}, "
+              f"{result['term_length']}")
+    print(f"Average search time: {avg_time} sec")
+    print(f"Average term length: {int(avg_term_length)}")

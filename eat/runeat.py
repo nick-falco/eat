@@ -5,6 +5,7 @@ import time
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
+from eat.core.utilities import print_execution_results_summary
 from eat.utilities.argparse_types import non_negative_integer, restricted_float
 
 
@@ -143,20 +144,12 @@ def main():
     prob = args.probability
     algorithm = args.algorithm
     if algorithm == "DDA":
-        if run_count > 1:
-            raise ValueError("The --run-count (-rc) option "
-                             "only applies to the beam algorithms.")
         if include_validity_array:
             raise ValueError("The --include-validity-array (-iva) option "
                              "only applies to the beam algorithms.")
         elif beam_width:
             raise ValueError("The --beam-width (-bw) option only applies to "
                              "the beam algorithms.")
-        # run the deep drilling algorithm
-        dda = DeepDrillingAlgorithm(grp, to,
-                                    male_term_generation_method=mtgm,
-                                    term_expansion_probability=prob)
-        dda.run(verbose=verbose, print_summary=print_summary)
     elif (algorithm == "MFBA" or algorithm == "FBA" or
           algorithm == "SBA"):
         if include_validity_array and not verbose:
@@ -167,9 +160,13 @@ def main():
             beam_width = 3
         if sub_beam_width is None:
             sub_beam_width = beam_width
-
-        # run the beam algorithm
-        beam = BeamEnumerationAlgorithm(
+    execution_results = []
+    total_time = 0
+    total_term_length = 0
+    for i in range(run_count):
+        start = time.time()
+        if (algorithm == "MFBA" or algorithm == "FBA" or algorithm == "SBA"):
+            beam = BeamEnumerationAlgorithm(
                                 grp,
                                 to,
                                 algorithm,
@@ -177,28 +174,35 @@ def main():
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
                                 sub_beam_width=sub_beam_width)
-        execution_results = []
-        total_time = 0
-        total_term_length = 0
-        for i in range(run_count):
-            start = time.time()
             node = beam.run(verbose=verbose, print_summary=print_summary,
                             include_validity_array=include_validity_array)
-            end = time.time()
+        else:
+            dda = DeepDrillingAlgorithm(grp, to,
+                                        male_term_generation_method=mtgm,
+                                        term_expansion_probability=prob)
+            node = dda.run(verbose=verbose, print_summary=print_summary)
+        end = time.time()
 
-            # calculate execution times
-            search_time = round(end - start, 2)
-            term_length = len(node.term)
-            # calculate totals for final averages
-            total_time += search_time
-            total_term_length += term_length
+        # calculate execution times
+        search_time = round(end - start, 2)
+        term_length = len(node.term)
+        # calculate totals for final averages
+        total_time += search_time
+        total_term_length += term_length
 
-            execution_results.append({
-                "search_time": search_time,
-                "term_length": term_length
-            })
-            if not (print_summary or verbose):
-                print(node.term if i == 0 else "\n" + node.term)
+        execution_results.append({
+            "search_time": search_time,
+            "term_length": term_length
+        })
+        if not (print_summary or verbose):
+            if run_count > 1:
+                print(f"Run {i+1} of {run_count}")
+            print(node.term if (i == 0 or run_count > 1)
+                  else "\n" + node.term)
+    if run_count > 1:
+        pass
+        print_execution_results_summary(execution_results, run_count,
+                                        total_time, total_term_length)
 
 
 if __name__ == '__main__':

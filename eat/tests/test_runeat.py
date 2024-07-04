@@ -62,14 +62,6 @@ class TestRunEAT(unittest.TestCase):
                              "Groupoid data must be a perfect square.")
             sys.argv = ['eat', '-a', 'DDA', '-g', '2', '1', '2', '1', '0', '0',
                         '0', '0', '1', '-rc', '1', '-tdt', '-tfc', '2', '-tv',
-                        'x', 'y', 'z', '-mtgm', 'GRA', '-rc', '3']
-            with self.assertRaises(ValueError) as context:
-                main()
-            self.assertEqual(str(context.exception),
-                             "The --run-count (-rc) option only applies to "
-                             "the beam algorithms.")
-            sys.argv = ['eat', '-a', 'DDA', '-g', '2', '1', '2', '1', '0', '0',
-                        '0', '0', '1', '-rc', '1', '-tdt', '-tfc', '2', '-tv',
                         'x', 'y', 'z', '-mtgm', 'GRA', '-iva']
             with self.assertRaises(ValueError) as context:
                 main()
