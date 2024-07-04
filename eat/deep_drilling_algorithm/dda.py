@@ -12,7 +12,7 @@ class DDA_Row():
         self.label = label  # label for type of row T, B, L, or Term
         self.array = array
         self.m = m  # keep track of highest value n introduced so far
-    
+
     @property
     def term(self):
         """

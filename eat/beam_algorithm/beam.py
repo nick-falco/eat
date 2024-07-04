@@ -353,7 +353,7 @@ class BeamEnumerationAlgorithm():
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
                     f_node_sol.term,
-                    f_node_sol.node.fitness,
+                    f_node_sol.fitness,
                     f_node_sol.level,
                     ("with array {}"
                         .format(condensed_array(f_node_sol.array,
