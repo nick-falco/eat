@@ -168,4 +168,4 @@ class DeepDrillingAlgorithm():
             print("")
         if (print_summary or verbose):
             print_search_summary(sol, sol, self.to, self.grp, start, end)
-        return sol
+        return sol, end - start

@@ -1,7 +1,6 @@
 import os
 import argparse
 import platform
-import time
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
@@ -164,7 +163,6 @@ def main():
     total_time = 0
     total_term_length = 0
     for i in range(run_count):
-        start = time.time()
         if (algorithm == "MFBA" or algorithm == "FBA" or algorithm == "SBA"):
             beam = BeamEnumerationAlgorithm(
                                 grp,
@@ -174,24 +172,24 @@ def main():
                                 term_expansion_probability=prob,
                                 beam_width=beam_width,
                                 sub_beam_width=sub_beam_width)
-            node = beam.run(verbose=verbose, print_summary=print_summary,
-                            include_validity_array=include_validity_array)
+            node, search_time = beam.run(
+                verbose=verbose, print_summary=print_summary,
+                include_validity_array=include_validity_array)
         else:
             dda = DeepDrillingAlgorithm(grp, to,
                                         male_term_generation_method=mtgm,
                                         term_expansion_probability=prob)
-            node = dda.run(verbose=verbose, print_summary=print_summary)
-        end = time.time()
+            node, search_time = \
+                dda.run(verbose=verbose, print_summary=print_summary)
 
         # calculate execution times
-        search_time = round(end - start, 2)
         term_length = len(node.term)
         # calculate totals for final averages
         total_time += search_time
         total_term_length += term_length
 
         execution_results.append({
-            "search_time": search_time,
+            "search_time": round(search_time, 2),
             "term_length": term_length
         })
         if not (print_summary or verbose):

@@ -196,6 +196,14 @@ class BeamEnumerationAlgorithm():
             pass
 
     def get_male_term(self, generation_method="GRA", **kwargs):
+        """
+        Generate a term using the given generation method
+
+        Args:
+            generation_method (str): The method to use to generate the term
+        Returns:
+            str: The generated term
+        """
         if generation_method == "GRA":
             return self.vtg.generate(
                 algorithm=generation_method,
@@ -210,6 +218,10 @@ class BeamEnumerationAlgorithm():
         """
         Given a male term and a direction (left or right) returns a new female
         term string
+
+        Args:
+            male_term (str): male term string
+            direction (str): direction to place F placeholder for female term
         """
         female_term = ""
         if direction == "left":
@@ -222,6 +234,13 @@ class BeamEnumerationAlgorithm():
         """
         Using the male_term, try to create a female term that is valid
         with respect to the curr_fnodes validity array.
+
+        Args:
+            male_term (str): randomly generated male term
+            curr_fnode (Node): current female term node to compute validity
+                of the new term wrt
+        Returns:
+            Node: For the new valid female term if one is found, else None
         """
         direction_order = ["right", "left"]
         for direction in direction_order:
@@ -242,6 +261,10 @@ class BeamEnumerationAlgorithm():
         """
         Continuously searches for a valid female node and put result in the
         multiprocessing queue
+
+        Args:
+            mp_queue (multiprocessing.Queue): The multiprocessing queue to put
+            curr_fnode (Node): The current node
         """
         # Exclude solutions that we know have already been found when we start
         # a new search process
@@ -272,6 +295,11 @@ class BeamEnumerationAlgorithm():
         """
         Continuously searches for a valid female node by finding a solution to
         the left or right array
+
+        Args:
+            mp_queue (multiprocessing.Queue): The multiprocessing queue to put
+            curr_fnode (Node): The current node
+            direction (str): The direction to search for a solution
         """
         # Exclude solutions that we know have already been found when we start
         # a new search process
@@ -320,6 +348,12 @@ class BeamEnumerationAlgorithm():
                 return
 
     def check_if_has_male_term_solution(self, curr_fnode):
+        """
+        Check if a female term as a male term solution
+
+        Returns:
+            Node: The solution node if a male term solution is found, else None
+        """
         for mt in self.male_terms:
             male_term_sol = self.to.compute(mt)
             if (self.to.is_solution(male_term_sol, curr_fnode.array)):
@@ -329,6 +363,9 @@ class BeamEnumerationAlgorithm():
 
     def _print_verbose_valid_term_log(self, f_node_sol,
                                       include_validity_array):
+        """
+        Print verbose output for a valid term
+        """
         if self.beam_width > 1:
             f_node_sol_level = [bn.term for bn in
                                 self.beam.get_level(f_node_sol.level)]
@@ -363,6 +400,18 @@ class BeamEnumerationAlgorithm():
 
     def run(self, verbose=False, print_summary=False,
             include_validity_array=False):
+        """
+        Run the beam search algorithm
+
+        Args:
+            verbose (bool): Print verbose output
+            print_summary (bool): Print a summary of the search
+            include_validity_array (bool): Include the validity array in the
+                output
+        Returns:
+            Node: The solution node
+            float: The time taken to find the solution
+        """
         sol_node = None
         # initialize beam at level 0
         f_node = Node("F", self.to.target, None, 0, self.to)
@@ -557,4 +606,4 @@ class BeamEnumerationAlgorithm():
         else:
             if verbose:
                 print(node.term)
-        return node
+        return node, end - start
