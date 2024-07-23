@@ -326,7 +326,7 @@ class BeamEnumerationAlgorithm():
                  beam_width=self.sub_beam_width)
         # Continuously search for a new solution
         while (True):
-            sol_node = ba.run()
+            sol_node, _ = ba.run()
             if direction == "left":
                 new_female_term = combine_postfix(sol_node.term, "F")
             else:
