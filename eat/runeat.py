@@ -61,18 +61,18 @@ def parse_arguments():
                            choices=["GRA", "random-term-generation"],
                            help=("Method to use for generating male terms. "
                                  "Choose from 'GRA' and "
-                                 "'random-term-generation'. "
+                                 "'random-term-generation' (default). "
                                  "The 'GRA' option randomly creates a male "
                                  "term using the Gamblers Ruin Algorithm. The "
-                                 "'random-term-generation' RTG (default) "
+                                 "'random-term-generation' RTG "
                                  "method randomly is a modified version of "
                                  "the GRA that randomly selects a 1 to 4 "
-                                 "variable occurance term tree, and then "
+                                 "variable occurrence term tree, and then "
                                  "runs the GRA with the selected term tree "
                                  "as the starting point if the randomly "
-                                 "selected tree has 4 variable occurances. "
+                                 "selected tree has 4 variable occurrences. "
                                  "Otherwise, if the term tree has less than "
-                                 "4 variable occurances it is used as is."),
+                                 "4 variable occurrences it is used as is."),
                            default="random-term-generation")
     vtg_group.add_argument('-p', '--probability',
                            help=("For random term generation specify the "

@@ -482,28 +482,7 @@ class BeamEnumerationAlgorithm():
                 continue
             least_fit_bp = procs_by_fitness[-1]
 
-            if (f_node_sol.fitness < least_fit_bp.node.fitness):
-                # Rerun process for solution node's parent
-                # and discard f_node_sol
-                if verbose:
-                    print(
-                        f"{f_node_sol_parent_proc.hash}: Discard lower "
-                        f"fitness term {f_node_sol.term} and rerun "
-                        f"{f_node_sol_parent_proc.hash} to search for "
-                        f"a new term. "
-                        f"{f_node_sol.fitness} < {least_fit_bp.node.fitness}")
-                if self.algorithm == "MFBA":
-                    f_node_sol_parent_proc.run(
-                        self.search_for_valid_female_node_using_lr_array,  # noqa
-                        mp_queue,
-                        f_node_sol.parent_node,
-                        direction=choice(["left", "right"]))
-                else:
-                    f_node_sol_parent_proc.run(
-                        self.search_for_valid_female_node,
-                        mp_queue,
-                        f_node_sol.parent_node)
-            elif self.algorithm == "SBA" and f_node_sol.term not in \
+            if self.algorithm == "SBA" and f_node_sol.term not in \
                     [t.term for t in self.beam.get_level(f_node_sol.level)]:
                 # add node to beam and parent process child nodes
                 self.beam.add_node(f_node_sol)
@@ -521,6 +500,27 @@ class BeamEnumerationAlgorithm():
                             nodes[i])
                 else:
                     # continue searching until the next level is full
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node,
+                        mp_queue,
+                        f_node_sol.parent_node)
+            elif (f_node_sol.fitness < least_fit_bp.node.fitness):
+                # Rerun process for solution node's parent
+                # and discard f_node_sol
+                if verbose:
+                    print(
+                        f"{f_node_sol_parent_proc.hash}: Discard lower "
+                        f"fitness term {f_node_sol.term} and rerun "
+                        f"{f_node_sol_parent_proc.hash} to search for "
+                        f"a new term. "
+                        f"{f_node_sol.fitness} < {least_fit_bp.node.fitness}")
+                if self.algorithm == "MFBA":
+                    f_node_sol_parent_proc.run(
+                        self.search_for_valid_female_node_using_lr_array,  # noqa
+                        mp_queue,
+                        f_node_sol.parent_node,
+                        direction=choice(["left", "right"]))
+                else:
                     f_node_sol_parent_proc.run(
                         self.search_for_valid_female_node,
                         mp_queue,
