@@ -4,8 +4,10 @@ import platform
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
-from eat.core.utilities import print_execution_results_summary
-from eat.utilities.argparse_types import non_negative_integer, restricted_float
+from eat.core.utilities import print_execution_results_summary, \
+    print_ac_table
+from eat.utilities.argparse_types import non_negative_integer, \
+    positive_integer, restricted_float
 
 
 def parse_arguments():
@@ -102,6 +104,17 @@ def parse_arguments():
                             help=("Whether to include validity array in "
                                   "verbose log output (default=False)"),
                             action='store_true')
+    ac_group = parser.add_argument_group(
+        'Options for asymptotic complete')
+    ac_group.add_argument('-ac', '--asymptotic-complete',
+                          help=("Check if groupoid is asymptotic complete."),
+                          action='store_true')
+    ac_group.add_argument('-acp', '--ac-probabilities',
+                          help=("Probability values to use at height 1."),
+                          nargs='+', type=restricted_float)
+    ac_group.add_argument('-th', '--table-height',
+                          help=("Print a table of this height."),
+                          type=positive_integer, default=700)
 
     return parser.parse_args()
 
@@ -128,6 +141,14 @@ def main():
     if args.target_free_count > 0:
         to.target = to.get_filled_target_array(to.target,
                                                args.target_free_count)
+
+    # Run AC check and return table
+    if args.asymptotic_complete is True:
+        ac_table = grp.is_asymptotic_complete(args.ac_probabilities,
+                                              args.term_variables,
+                                              limit=args.table_height)
+        print_ac_table(ac_table)
+        return
 
     mtgm = args.male_term_generation_method
 

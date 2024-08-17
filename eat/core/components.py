@@ -25,6 +25,59 @@ class Groupoid():
                          [str(cell) for cell in row])
                          for row in self.data])
 
+    def is_asymptotic_complete(self, probabilities, term_variables, limit=700):
+        if not probabilities:
+            raise ValueError("You must specify probability values to use")
+        elif len(probabilities) != self.size:
+            raise ValueError("The number of probability values must match the "
+                             "size of the groupoid.")
+        elif sum(probabilities) != 1:
+            raise ValueError("Probabilies must add to one.")
+
+        def get_operations_resolving_to_value(output_val):
+            operation_pairs = []
+            for row_idx, row in enumerate(self.data):
+                for col_idx, _ in enumerate(row):
+                    if self.data[row_idx][col_idx] == output_val:
+                        operation_pairs.append([row_idx, col_idx])
+            return operation_pairs
+
+        def compute_ac_table(t_H, probs, limit=700):
+            print("Computing AC table")
+            table = []
+            i_H = None
+            while len(table) < limit:
+                if not i_H or 1 - i_H < math.pow(10, -6):
+                    t_H_plus_1 = (t_H * t_H) + len(term_variables)
+                    i_H = (t_H * t_H) / t_H_plus_1
+                else:
+                    t_H_plus_1 = t_H
+                # add computed probabilities
+                table.append([])
+                for input_value in range(self.size):
+                    if input_value < self.size - 1:
+                        # compute series summing over all probabilities
+                        operation_pairs = \
+                            get_operations_resolving_to_value(input_value)
+                        series = 0
+                        for operation_pair in operation_pairs:
+                            series += (probs[operation_pair[0]] *
+                                       probs[operation_pair[1]])
+                        # use series to compute b_H_plus_1
+                        b_H_plus_1 = (i_H * series) + \
+                                     ((1 - i_H) * probabilities[input_value])
+                    else:
+                        b_H_plus_1 = 1 - sum(table[-1])
+                    table[-1].append(b_H_plus_1)  # add each probability value
+                probs = table[-1]  # Update probs for the next iteration
+                t_H = t_H_plus_1  # Update t_H for the next iteration
+            return table
+
+        table = compute_ac_table(len(term_variables),
+                                 probabilities,
+                                 limit=limit)
+        return table
+
     def set_value(self, x, y, value):
         """
         Set groupoid value at index (x, y)

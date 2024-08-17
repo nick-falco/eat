@@ -18,5 +18,13 @@ def non_negative_integer(value):
     ivalue = int(value)
     if ivalue < 0:
         raise argparse.ArgumentTypeError(
+            "{} is not a non negative int literal".format(value))
+    return ivalue
+
+
+def positive_integer(value):
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(
             "{} is not a positive int literal".format(value))
     return ivalue

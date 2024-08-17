@@ -130,3 +130,27 @@ def print_execution_results_summary(execution_results, run_count,
               f"{result['term_length']}")
     print(f"Average search time: {avg_time} sec")
     print(f"Average term length: {int(avg_term_length)}")
+
+
+def print_ac_table(table_output):
+    # Calculate the maximum width for each column
+    col_widths = [max(len(f"{v:.6f}") for v in col)
+                  for col in zip(*table_output)]
+    header_widths = [max(len(f"B{i}"), col_width)
+                     for i, col_width in enumerate(col_widths)]
+
+    # Calculate the width needed for the row index column
+    index_width = max(len(str(len(table_output))), len("H"))
+
+    # Print the header
+    header = "H".ljust(index_width) + " " + " ".join(
+        [f"B{i}".ljust(header_width)
+         for i, header_width in enumerate(header_widths)])
+    print(header)
+
+    # Print each row
+    for i, row in enumerate(table_output):
+        row_str = f"{i+1}".ljust(index_width) + " " + " ".join([
+            f"{v:.6f}".ljust(header_width)
+            for v, header_width in zip(row, header_widths)])
+        print(row_str)
