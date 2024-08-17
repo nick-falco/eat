@@ -44,7 +44,7 @@ class Groupoid():
 
         def compute_ac_table(t_H, probs, limit=700):
             print("Computing AC table")
-            table = []
+            table = [probabilities]
             i_H = None
             while len(table) < limit:
                 if not i_H or 1 - i_H < math.pow(10, -6):
