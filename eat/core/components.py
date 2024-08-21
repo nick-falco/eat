@@ -47,11 +47,12 @@ class Groupoid():
             table = [probabilities]
             i_H = None
             while len(table) < limit:
-                if not i_H or 1 - i_H < math.pow(10, -6):
+                if len(table) == 1:
                     t_H_plus_1 = (t_H * t_H) + len(term_variables)
                     i_H = (t_H * t_H) / t_H_plus_1
                 else:
-                    t_H_plus_1 = t_H
+                    i_H = len(term_variables) / \
+                        (math.pow(1 - i_H, 2) + len(term_variables))
                 # add computed probabilities
                 table.append([])
                 for input_value in range(self.size):
