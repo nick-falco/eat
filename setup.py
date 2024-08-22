@@ -26,9 +26,6 @@ setup(
     author="Nicholas Falco, David M. Clark",
     author_email="ncfalco@gmail.com",
     include_package_data=True,
-    install_requires=[
-        'matplotlib>=3.6,<4',
-    ],
     license='Apache License, Version 2.0',
     keywords=("evolutionary-computation genetics ternary-descriminator "
               "idemprimality groupoid machine-learning artifical-intellegence "
