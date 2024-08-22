@@ -1,7 +1,10 @@
 from eat.core.components import ValidTermGenerator
-from eat.core.utilities import combine_postfix, print_search_summary
-import logging
+from eat.core.utilities import combine_postfix, log_search_summary, \
+    get_logger
 import time
+
+
+LOG = get_logger('dda_logger')
 
 
 class DDA_Row():
@@ -16,7 +19,7 @@ class DDA_Row():
     @property
     def term(self):
         """
-        Shim to return the term for the print_search_summary method.
+        Shim to return the term for the log_search_summary method.
         """
         return self.label
 
@@ -68,7 +71,6 @@ class DeepDrillingAlgorithm():
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self.term_expansion_probability = term_expansion_probability
         self.male_term_generation_method = male_term_generation_method
-        self.logger = logging.getLogger(__name__)
 
     def get_k_from_label(self, rowlabel):
         # Get label K from row M labeled Bk or Lk
@@ -88,14 +90,15 @@ class DeepDrillingAlgorithm():
         pds = []  # push down stack containing number of terms
         pds.append(1)
 
-        # initialize DDA table
-        dda = DDA_Table()
-        dda.table.append(DDA_Row(0, 1, "T", self.to.target, 1))
-
         # algorithm variables
         N = 1  # we start at the second row
         m = 1  # keep track of highest value n introduced so far
         n = 1  # get the initial value of n
+
+        # initialize DDA table
+        dda = DDA_Table()
+        dda.table.append(
+            DDA_Row(N=0, n=n, label="T", array=self.to.target, m=m))
 
         start = time.time()
         while (True):
@@ -111,7 +114,7 @@ class DeepDrillingAlgorithm():
                 male_term_sol = self.to.compute(male_term)
                 # check to see if there was a variable solution to the term
                 if (self.to.is_solution(male_term_sol, last_row.array)):
-                    self.logger.debug("STEP 1 A")
+                    LOG.debug("STEP 1 A")
                     new_row.label = male_term
                     new_row.array = male_term_sol
                     new_row.N = N
@@ -121,7 +124,7 @@ class DeepDrillingAlgorithm():
                     # to the array numbered n has been found
                     pds.pop()
                 else:  # term is not a variable solution
-                    self.logger.debug("STEP 1 B")
+                    LOG.debug("STEP 1 B")
                     new_row.N = N
                     new_row.n = m + 1
                     new_row.label = "L{}".format(m+1)
@@ -133,11 +136,11 @@ class DeepDrillingAlgorithm():
                 # do this if the label of row N is a term
                 meqln_row = dda.get_m_eq_n(n)
                 if meqln_row.label.startswith("T"):
-                    self.logger.debug("STEP 2 A")
+                    LOG.debug("STEP 2 A")
                     # found solution
                     break
                 elif meqln_row.label.startswith("L"):  # row is labeled Ln
-                    self.logger.debug("STEP 2 B")
+                    LOG.debug("STEP 2 B")
                     A = dda.get_m_eq_n(n-1)
                     new_row.N = N
                     new_row.n = m + 1
@@ -148,7 +151,7 @@ class DeepDrillingAlgorithm():
                     new_row.m = m + 1
                     pds.append(m + 1)  # push m+1 onto stack
                 elif meqln_row.label.startswith("B"):
-                    self.logger.debug("STEP 2 C")
+                    LOG.debug("STEP 2 C")
                     k = self.get_k_from_label(meqln_row.label)
                     first, second = dda.get_n_eq_k(k)
                     new_row.N = N
@@ -167,5 +170,5 @@ class DeepDrillingAlgorithm():
             print(dda)
             print("")
         if (print_summary or verbose):
-            print_search_summary(sol, sol, self.to, self.grp, start, end)
+            log_search_summary(sol, sol, self.to, self.grp, start, end, LOG)
         return sol, end - start

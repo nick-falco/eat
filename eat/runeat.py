@@ -4,10 +4,13 @@ import platform
 from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
-from eat.core.utilities import print_execution_results_summary, \
-    print_ac_table
+from eat.core.utilities import log_execution_results_summary, \
+    log_ac_table, get_logger
 from eat.utilities.argparse_types import non_negative_integer, \
     positive_integer, restricted_float
+
+
+LOG = get_logger('runeat_logger')
 
 
 def parse_arguments():
@@ -147,7 +150,7 @@ def main():
         ac_table = grp.is_asymptotic_complete(args.ac_probabilities,
                                               args.term_variables,
                                               limit=args.table_height)
-        print_ac_table(ac_table)
+        log_ac_table(ac_table, LOG)
         return
 
     mtgm = args.male_term_generation_method
@@ -215,13 +218,12 @@ def main():
         })
         if not (print_summary or verbose):
             if run_count > 1:
-                print(f"Run {i+1} of {run_count}")
-            print(node.term if (i == 0 or run_count > 1)
-                  else "\n" + node.term)
+                LOG.info(f"Run {i+1} of {run_count}")
+            LOG.info(node.term if (i == 0 or run_count > 1)
+                     else "\n" + node.term)
     if run_count > 1:
-        pass
-        print_execution_results_summary(execution_results, run_count,
-                                        total_time, total_term_length)
+        log_execution_results_summary(execution_results, run_count,
+                                      total_time, total_term_length, LOG)
 
 
 if __name__ == '__main__':

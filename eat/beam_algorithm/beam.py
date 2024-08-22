@@ -1,6 +1,6 @@
 from eat.core.components import ValidTermGenerator, TermOperation
-from eat.core.utilities import print_search_summary, condensed_array, \
-    combine_postfix
+from eat.core.utilities import log_search_summary, condensed_array, \
+    combine_postfix, get_logger
 from collections import deque
 from copy import deepcopy
 from decimal import Decimal
@@ -11,6 +11,9 @@ import logging
 import time
 import signal
 import sys
+
+
+LOG = get_logger('beam_logger')
 
 
 def exit_gracefully(func):
@@ -172,7 +175,10 @@ class BeamEnumerationAlgorithm():
     def __init__(self, groupoid, term_operation, algorithm,
                  term_expansion_probability=0.1,
                  male_term_generation_method="GRA", beam_width=3,
-                 sub_beam_width=3):
+                 sub_beam_width=3, logging_handler=None):
+        if logging_handler:
+            # Use the provided logging handler
+            LOG.addHandler(logging_handler)
         self.grp = groupoid
         self.to = term_operation
         self.algorithm = algorithm
@@ -369,8 +375,9 @@ class BeamEnumerationAlgorithm():
         if self.beam_width > 1:
             f_node_sol_level = [bn.term for bn in
                                 self.beam.get_level(f_node_sol.level)]
-            print("{}: Found {}valid term {} of fitness {:.2e} at level {} {}"
-                  .format(
+            LOG.info(
+                "{}: Found {}valid term {} of fitness {:.2e} at level {} {}"
+                .format(
                     f_node_sol.parent_node.proc_hash if
                     f_node_sol.parent_node.proc_hash else "Main",
                     ("DUPLICATE "
@@ -385,18 +392,18 @@ class BeamEnumerationAlgorithm():
                         if include_validity_array else "")
                     ))
         else:
-            print("{}: Found valid term {} of fitness {:.2e} at level {} {}"
-                  .format(
-                    f_node_sol.parent_node.proc_hash if
-                    f_node_sol.parent_node.proc_hash else "Main",
-                    f_node_sol.term,
-                    f_node_sol.fitness,
-                    f_node_sol.level,
-                    ("with array {}"
-                        .format(condensed_array(f_node_sol.array,
-                                                self.grp.size))
-                        if include_validity_array else "")
-                  ))
+            LOG.info("{}: Found valid term {} of fitness {:.2e} at level {} {}"
+                     .format(
+                        f_node_sol.parent_node.proc_hash if
+                        f_node_sol.parent_node.proc_hash else "Main",
+                        f_node_sol.term,
+                        f_node_sol.fitness,
+                        f_node_sol.level,
+                        ("with array {}"
+                            .format(condensed_array(f_node_sol.array,
+                                                    self.grp.size))
+                            if include_validity_array else "")
+                     ))
 
     def run(self, verbose=False, print_summary=False,
             include_validity_array=False):
@@ -477,8 +484,8 @@ class BeamEnumerationAlgorithm():
                 f_node_sol.level)
             if not procs_by_fitness:
                 if verbose:
-                    print(f"!!Skipping {f_node_sol.term}. No processes "
-                          f"running at a level below {f_node_sol.level}!!")
+                    LOG.info(f"!!Skipping {f_node_sol.term}. No processes "
+                             f"running at a level below {f_node_sol.level}!!")
                 continue
             least_fit_bp = procs_by_fitness[-1]
 
@@ -508,7 +515,7 @@ class BeamEnumerationAlgorithm():
                 # Rerun process for solution node's parent
                 # and discard f_node_sol
                 if verbose:
-                    print(
+                    LOG.info(
                         f"{f_node_sol_parent_proc.hash}: Discard lower "
                         f"fitness term {f_node_sol.term} and rerun "
                         f"{f_node_sol_parent_proc.hash} to search for "
@@ -536,9 +543,9 @@ class BeamEnumerationAlgorithm():
                 # reassign least fit beam process to work on newly found
                 # female term
                 if verbose:
-                    print(f"{least_fit_bp.hash}: Reassigned "
-                          f"{least_fit_bp.hash} to work on the newly "
-                          f"found female term {f_node_sol.term}")
+                    LOG.info(f"{least_fit_bp.hash}: Reassigned "
+                             f"{least_fit_bp.hash} to work on the newly "
+                             f"found female term {f_node_sol.term}")
                 if self.algorithm == "MFBA":
                     least_fit_bp.run(
                         self.search_for_valid_female_node_using_lr_array,  # noqa
@@ -552,10 +559,10 @@ class BeamEnumerationAlgorithm():
                         f_node_sol)
                 if f_node_sol_parent_proc.hash != least_fit_bp.hash:
                     if verbose:
-                        print(f"{f_node_sol_parent_proc.hash}: Rerun "
-                              f"{f_node_sol_parent_proc.hash} to "
-                              f"search for a new child female term "
-                              f"different than {f_node_sol.term}")
+                        LOG.info(f"{f_node_sol_parent_proc.hash}: Rerun "
+                                 f"{f_node_sol_parent_proc.hash} to "
+                                 f"search for a new child female term "
+                                 f"different than {f_node_sol.term}")
                     if self.algorithm == "MFBA":
                         f_node_sol_parent_proc.run(
                             self.search_for_valid_female_node_using_lr_array,
@@ -569,10 +576,10 @@ class BeamEnumerationAlgorithm():
                             f_node_sol.parent_node)
             else:
                 if verbose:
-                    print(f"{f_node_sol_parent_proc.hash}: Duplicate term."
-                          f"Rerun {f_node_sol_parent_proc.hash} to "
-                          f"search for a new child female term "
-                          f"different than {f_node_sol.term}")
+                    LOG.info(f"{f_node_sol_parent_proc.hash}: Duplicate term."
+                             f"Rerun {f_node_sol_parent_proc.hash} to "
+                             f"search for a new child female term "
+                             f"different than {f_node_sol.term}")
                 if self.algorithm == "MFBA":
                     f_node_sol_parent_proc.run(
                         self.search_for_valid_female_node_using_lr_array,
@@ -585,7 +592,7 @@ class BeamEnumerationAlgorithm():
                         mp_queue,
                         f_node_sol.parent_node)
             if verbose:
-                print("(pid,lvl,chldn,fitness,is_alive): {}".format(
+                LOG.info("(pid,lvl,chldn,fitness,is_alive): {}".format(
                     [(bp.hash,
                       bp.node.level,
                       len(bp.child_nodes),
@@ -601,9 +608,9 @@ class BeamEnumerationAlgorithm():
         end = time.perf_counter()
 
         if (print_summary or verbose):
-            print_search_summary(node, sol_node, self.to, self.grp, start, end,
-                                 show_creation_history=verbose)
+            log_search_summary(node, sol_node, self.to, self.grp, start, end,
+                               LOG, show_creation_history=verbose)
         else:
             if verbose:
-                print(node.term)
+                LOG.info(node.term)
         return node, end - start

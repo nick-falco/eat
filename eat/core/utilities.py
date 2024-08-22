@@ -1,4 +1,6 @@
+import logging
 import string
+import sys
 import itertools
 from copy import deepcopy
 from decimal import Decimal
@@ -92,47 +94,63 @@ def get_creation_history(node, algorithm_start_time):
     return history
 
 
-def print_search_summary(node, last_node, term_operation, groupoid,
-                         algorithm_start_time, algorithm_end_time,
-                         show_creation_history=False):
-    print("--------")
-    print("Summary")
-    print("--------")
-    print("Groupoid used:")
-    print(groupoid)
-    print("Computed term:")
-    print(node.term)
-    print("Term length  = {}".format(len(node.term)))
-    print("Search time  = {} sec".format(
+def get_logger(name):
+    """
+    Setup logger for DDA and Beam Algorithm
+    """
+    log = logging.getLogger(name)
+    log.setLevel(logging.INFO)  # Set the default logging level
+    # Configure logging to mimic print function
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    # Set formatter to mimic print
+    formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(formatter)
+    log.addHandler(console_handler)
+    return log
+
+
+def log_search_summary(node, last_node, term_operation, groupoid,
+                       algorithm_start_time, algorithm_end_time,
+                       log, show_creation_history=False):
+    log.info("--------")
+    log.info("Summary")
+    log.info("--------")
+    log.info("Groupoid used:")
+    log.info(groupoid)
+    log.info("Computed term:")
+    log.info(node.term)
+    log.info("Term length  = {}".format(len(node.term)))
+    log.info("Search time  = {} sec".format(
         round(algorithm_end_time - algorithm_start_time, 2)))
-    print("Term array   = {}".format(
+    log.info("Term array   = {}".format(
           condensed_array(term_operation.compute(node.term), groupoid.size)))
-    print("Target array = {}".format(
+    log.info("Target array = {}".format(
           condensed_array(term_operation.target, groupoid.size)))
     if show_creation_history:
-        print("-----------------")
-        print("Creation History")
-        print("-----------------")
+        log.info("-----------------")
+        log.info("Creation History")
+        log.info("-----------------")
         for info in get_creation_history(last_node, algorithm_start_time):
-            print(info)
+            log.info(info)
 
 
-def print_execution_results_summary(execution_results, run_count,
-                                    total_time, total_term_length):
+def log_execution_results_summary(execution_results, run_count,
+                                  total_time, total_term_length, log):
     avg_time = round(total_time / run_count, 2)
     avg_term_length = round(total_term_length / run_count, 2)
-    print("-----------------------------")
-    print(f"Execution results for {run_count} runs")
-    print("-----------------------------")
-    print("Run, Search Time (sec), Term Length")
+    log.info("-----------------------------")
+    log.info(f"Execution results for {run_count} runs")
+    log.info("-----------------------------")
+    log.info("Run, Search Time (sec), Term Length")
     for i, result in enumerate(execution_results):
-        print(f"{i+1}, {result['search_time']}, "
-              f"{result['term_length']}")
-    print(f"Average search time: {avg_time} sec")
-    print(f"Average term length: {int(avg_term_length)}")
+        log.info(f"{i+1}, {result['search_time']}, "
+                 f"{result['term_length']}")
+    log.info(f"Average search time: {avg_time} sec")
+    log.info(f"Average term length: {int(avg_term_length)}")
 
 
-def print_ac_table(table_output):
+def log_ac_table(table_output, log):
     # Calculate the maximum width for each column
     col_widths = [max(len(f"{v:.6f}") for v in col)
                   for col in zip(*table_output)]
@@ -142,15 +160,15 @@ def print_ac_table(table_output):
     # Calculate the width needed for the row index column
     index_width = max(len(str(len(table_output))), len("H"))
 
-    # Print the header
+    # Log the header
     header = "H".ljust(index_width) + " " + " ".join(
         [f"B{i}".ljust(header_width)
          for i, header_width in enumerate(header_widths)])
-    print(header)
+    log.info(header)
 
-    # Print each row
+    # Log each row
     for i, row in enumerate(table_output):
         row_str = f"{i+1}".ljust(index_width) + " " + " ".join([
             f"{v:.6f}".ljust(header_width)
             for v, header_width in zip(row, header_widths)])
-        print(row_str)
+        log.info(row_str)
