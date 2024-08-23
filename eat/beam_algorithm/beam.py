@@ -10,19 +10,11 @@ import multiprocessing as mp
 import logging
 import time
 import signal
+import queue
 import sys
 
 
 LOG = get_logger('beam_logger')
-
-
-def exit_gracefully(func):
-    def func_wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception:
-            return
-    return func_wrapper
 
 
 class Beam():
@@ -154,7 +146,7 @@ class BeamProcess():
     def terminate(self):
         if self.proc:
             try:
-                self.proc.terminate()
+                self.proc.kill()
             except AttributeError:
                 # process already terminated by parent
                 return
@@ -171,6 +163,16 @@ class BeamProcess():
 
 
 class BeamEnumerationAlgorithm():
+
+    stop_signal = False  # Class attribute to maintain stop signal state
+
+    @classmethod
+    def terminate_signal_handler(cls, signum, frame):
+        cls.stop_signal = True
+
+    @classmethod
+    def interupt_signal_handler(cls, signum, frame):
+        cls.stop_signal = True
 
     def __init__(self, groupoid, term_operation, algorithm,
                  term_expansion_probability=0.1,
@@ -190,6 +192,12 @@ class BeamEnumerationAlgorithm():
         self.male_term_generation_method = male_term_generation_method
         self.beam_width = beam_width
         self.sub_beam_width = sub_beam_width
+        # Use signal handler to throw exception which can be caught to allow
+        # graceful exit.
+        signal.signal(signal.SIGINT,
+                      BeamEnumerationAlgorithm.interupt_signal_handler)
+        signal.signal(signal.SIGTERM,
+                      BeamEnumerationAlgorithm.terminate_signal_handler)
         try:
             mp.set_start_method('fork', force=True)
         except RuntimeError:
@@ -262,7 +270,6 @@ class BeamEnumerationAlgorithm():
             # we couldn't find a valid female term
             return None
 
-    @exit_gracefully
     def search_for_valid_female_node(self, mp_queue, curr_fnode):
         """
         Continuously searches for a valid female node and put result in the
@@ -281,7 +288,7 @@ class BeamEnumerationAlgorithm():
 
         random_terms = set()
         # Continuously search for a new solution
-        while (True):
+        while (not BeamEnumerationAlgorithm.stop_signal):
             random_term = self.get_male_term(
                 generation_method=self.male_term_generation_method
             )
@@ -290,11 +297,17 @@ class BeamEnumerationAlgorithm():
                                                               curr_fnode)
                 if f_node:
                     if f_node.term not in exclude:
-                        mp_queue.put_nowait(f_node)
+                        try:
+                            mp_queue.put_nowait(f_node)
+                        except Exception:
+                            # this is needed since erros will be raised if the
+                            # process is terminated
+                            pass
                         return
             random_terms.add(random_term)
+        else:
+            return
 
-    @exit_gracefully
     def search_for_valid_female_node_using_lr_array(
                                 self, mp_queue, curr_fnode,
                                 direction="left"):
@@ -331,7 +344,7 @@ class BeamEnumerationAlgorithm():
                  male_term_generation_method=self.male_term_generation_method,
                  beam_width=self.sub_beam_width)
         # Continuously search for a new solution
-        while (True):
+        while (not BeamEnumerationAlgorithm.stop_signal):
             sol_node, _ = ba.run()
             if direction == "left":
                 new_female_term = combine_postfix(sol_node.term, "F")
@@ -350,8 +363,15 @@ class BeamEnumerationAlgorithm():
                           curr_fnode.level+1,
                           curr_fnode.to)
             if f_node.term not in exclude:
-                mp_queue.put_nowait(f_node)
+                try:
+                    mp_queue.put_nowait(f_node)
+                except Exception:
+                    # this is needed since erros will be raised if the
+                    # process is terminated
+                    pass
                 return
+        else:
+            return
 
     def check_if_has_male_term_solution(self, curr_fnode):
         """
@@ -431,20 +451,6 @@ class BeamEnumerationAlgorithm():
 
         bpm = BeamProcessManager()
 
-        def terminate_signal_handler(signum, frame):
-            # this closure gets the objects in scope of the process actively
-            # being terminated
-            mp_mngr.shutdown()
-
-        def interupt_signal_handler(signum, frame):
-            bpm.terminate_all()
-            sys.exit()
-
-        # Use signal handler to throw exception which can be caught to allow
-        # graceful exit.
-        signal.signal(signal.SIGINT, interupt_signal_handler)
-        signal.signal(signal.SIGTERM, terminate_signal_handler)
-
         for idx, f_node in enumerate(
                 self.beam.get_level(self.beam.get_height()-1)):
             # start a process for each of the initial nodes at level 0
@@ -461,8 +467,13 @@ class BeamEnumerationAlgorithm():
                        mp_queue,
                        f_node)
 
-        while (True):
-            f_node_sol = mp_queue.get()
+        while (not BeamEnumerationAlgorithm.stop_signal):
+            try:
+                f_node_sol = mp_queue.get(block=False)
+            except queue.Empty:
+                # we don't want to block because we want to always check for
+                # the stop signal
+                continue
             f_node_sol_parent_proc = \
                 bpm.get_process(f_node_sol.parent_node.proc_hash)
 
@@ -599,6 +610,9 @@ class BeamEnumerationAlgorithm():
                       f"{Decimal(bp.node.fitness):.2e}",
                       bp.is_alive())
                      for bp in bpm.get_processes()]))
+        else:
+            bpm.terminate_all()
+            sys.exit(130)
 
         # kill any remaining processes
         bpm.deactivate_all()
