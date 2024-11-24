@@ -92,6 +92,12 @@ def parse_arguments():
                            help=("Print a summary of the algorithms result. "
                                  "(default=False)"),
                            action='store_true')
+    dda_group = parser.add_argument_group(
+        'Deep Drilling Algorithm only options')
+    dda_group.add_argument('-m',
+                           help=("The value of m to use for the "
+                                 "Deep Drilling Algorithm."),
+                           type=positive_integer, default=2)
     beam_group = parser.add_argument_group('Beam algorithm only options')
     beam_group.add_argument('-bw', '--beam-width',
                             type=non_negative_integer,
@@ -199,10 +205,8 @@ def main():
             node, search_time = beam.run(
                 verbose=verbose, print_summary=print_summary,
                 include_validity_array=include_validity_array)
-        else:
-            dda = DeepDrillingAlgorithm(grp, to,
-                                        male_term_generation_method=mtgm,
-                                        term_expansion_probability=prob)
+        elif algorithm == "DDA":
+            dda = DeepDrillingAlgorithm(grp, to, m=args.m)
             node, search_time = \
                 dda.run(verbose=verbose, print_summary=print_summary)
 

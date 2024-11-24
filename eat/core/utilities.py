@@ -99,14 +99,15 @@ def get_logger(name):
     Setup logger for DDA and Beam Algorithm
     """
     log = logging.getLogger(name)
-    log.setLevel(logging.INFO)  # Set the default logging level
-    # Configure logging to mimic print function
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    # Set formatter to mimic print
-    formatter = logging.Formatter('%(message)s')
-    console_handler.setFormatter(formatter)
-    log.addHandler(console_handler)
+    if not log.hasHandlers():
+        log.setLevel(logging.INFO)  # Set the default logging level
+        # Configure logging to mimic print function
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        # Set formatter to mimic print
+        formatter = logging.Formatter('%(message)s')
+        console_handler.setFormatter(formatter)
+        log.addHandler(console_handler)
     return log
 
 
