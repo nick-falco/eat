@@ -27,19 +27,6 @@ def get_term_variables(size):
     return list(string.ascii_lowercase)[0:size]
 
 
-def get_all_one_and_two_variable_terms(term_variables):
-    combinations = []
-    for i in range(len(term_variables)+1):
-        for combination in \
-                itertools.product(term_variables, repeat=i):
-            combination = "".join(combination)
-            if len(combination) == 1:
-                combinations.append(combination)
-            elif len(combination) == 2:
-                combinations.append("{}*".format(combination))
-    return combinations
-
-
 def postfix_to_infix(exp):
 
     def is_operand(x):
