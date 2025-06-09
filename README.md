@@ -27,10 +27,12 @@ A detailed description of this applicaiton may be found in the [EAT Wiki](https:
 
 <h4>References</h4>
 
+[0] L. Spector, D. Clark, B. Barr, J. Klein, I. Lindsay, Genetic programming for finite algebras,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GECCO 2008 Proceedings, pp 1291-1298.<br/>  
 [1] David M. Clark, Evolution of algebraic terms 1: Term to term operation continuity,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;International Journal of Algebra and Computation, Vol. 23, No. 5 (2013) 1175–1205.<br/>
 [2] David M. Clark, Maarten Keijzer, Lee Spector, Evolution of algebraic terms 2: Deep drilling algorithm,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;International Journal of Algebra and Computation, Vol. 26, No. 6 (2016) 1141–1176.<br/>
 [3] David M. Clark, Lee Spector, Evolution of algebraic terms 3: evolutionary algorithms,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;International Journal of Algebra and Computation, Vol. 28, No. 5 (2018).<br/>
-
+[4] David M. Clark, Nicholas C. Falco, Evolution of algebraic terms 4, Biological beam algorithms, (in preparation).

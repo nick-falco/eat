@@ -66,16 +66,16 @@ def condensed_array(array, groupoid_size):
 
 
 def get_creation_history(node, algorithm_start_time):
-    history = ["Level, Term, Term Length, Time Since Parent Creation, "
-               "Time Since Start, Fitness"]
+    history = ["Level, Term, Term Length, Time Since Previous (sec), "
+               "Time Since Start (sec), Fitness"]
     while node is not None:
         node = deepcopy(node)
         history.append(
             f"{node.level}, "
             f"{node.term}, "
             f"{len(node.term)}, "
-            f"{round(node.time_since_parent_creation(), 2)} sec, "
-            f"{round(node.elapsed_time(algorithm_start_time), 2)} sec, "
+            f"{round(node.time_since_parent_creation(), 2)}, "
+            f"{round(node.elapsed_time(algorithm_start_time), 2)}, "
             f"{Decimal(node.fitness):.2e}")
         node = deepcopy(node.parent_node)
     return history
