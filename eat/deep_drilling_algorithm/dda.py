@@ -5,7 +5,6 @@ import time
 
 
 LOG = get_logger('dda_logger')
-MAX_REPEAT_CNT = 10
 
 
 class Node():
@@ -144,8 +143,6 @@ class DeepDrillingAlgorithm():
 
         # Start exploring the tree
         current_node = node
-        last_found_solution_array = []
-        repeat_cnt = MAX_REPEAT_CNT
         while True:
             # Get the next node to explore
             child_node = self.get_l_or_r(current_node, verbose=verbose)
@@ -172,24 +169,6 @@ class DeepDrillingAlgorithm():
                         LOG.info("Found {} as a solution to {}".format(
                             child_node.term, child_node.label))
                         LOG.info("Term array = {}".format(child_node.array))
-                    if child_node.array == last_found_solution_array:
-                        LOG.warning(
-                            "Repeating array! The newly found term's "
-                            "array is the same as the previous solution "
-                            "term's array. This may indicate a loop.")
-                        repeat_cnt -= 1
-                        if repeat_cnt == 0:
-                            solution_array_str = \
-                                " ".join(str(",".join(str(y) for y in x))
-                                         for x in child_node.array)
-                            raise RuntimeError(
-                                "The algorithm was stuck in a loop where the "
-                                "same solution array was produced {} times "
-                                "repeatedly. The repeated array was {}".format(
-                                    MAX_REPEAT_CNT, solution_array_str))
-                    else:
-                        repeat_cnt = MAX_REPEAT_CNT
-                    last_found_solution_array = child_node.array
                 else:
                     # Otherwise continue to search in a random direction
                     # higher up the tree
