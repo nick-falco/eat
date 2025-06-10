@@ -18,15 +18,15 @@ EAT is a Python implementation of the algorithms described in the research paper
 ```
 eat/
 ├── README.md                 # Project documentation
+├── LICENSE                   # Project usage license
 ├── setup.py                  # Package installation
 └── eat/                      # Main package
     ├── runeat.py             # Main entry point
     ├── core/                 # Core mathematical components
     ├── beam_algorithm/       # Biological beam algorithms
-    ├── deep_drilling_algorithm/  # Deep drilling algorithms
+    ├── deep_drilling_algorithm/  # Deep drilling algorithm
     ├── utilities/            # Helper functions
     ├── tests/                # Test suite
-    └── static/               # Static resources
 ```
 
 
@@ -83,7 +83,7 @@ python -c "import eat; print('EAT installed successfully!')"
 
 ## 💡 Usage
 
-For usage examples please see https://github.com/nick-falco/eat/wiki.
+Please see the **📘 [EAT Wiki](https://github.com/nick-falco/eat/wiki)** for detailed program usage examples.
 
 ## 🔧 Troubleshooting
 
@@ -94,11 +94,6 @@ For usage examples please see https://github.com/nick-falco/eat/wiki.
 ModuleNotFoundError: No module named 'eat'
 ```
 *Solution:* `pip install evolution-of-algebraic-terms`
-
-
-## 📖 Documentation
-
-- **📘 [EAT Wiki](https://github.com/nick-falco/eat/wiki)** - Comprehensive program documentation
 
 ## 🤝 Contributing
 
