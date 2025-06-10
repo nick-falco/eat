@@ -32,7 +32,12 @@ def parse_arguments():
                         action='version',
                         version=VERSION)
     parser.add_argument('-a', '--algorithm',
-                        help="EAT algorithm to run. (default='MFBA')",
+                        help=(
+                            "EAT algorithm to run. (default='MFBA'). "
+                            "DDA=Deep Drilling Algorithm, "
+                            "MFBA=Male-Female Beam Algorithm, "
+                            "FBA=Female Beam Algorithm, "
+                            "SBA=Sample Beam Algorithm"),
                         type=str, default="MFBA",
                         choices=["DDA", "MFBA", "FBA", "SBA"])
     parser.add_argument('-g', '--groupoid',
@@ -41,7 +46,7 @@ def parse_arguments():
                         type=non_negative_integer,
                         default=[2, 1, 2, 1, 0, 0, 0, 0, 1])
     parser.add_argument('-rc', '--run-count',
-                        help="Run the algorithm rc times.",
+                        help="Run the algorithm rc times",
                         type=non_negative_integer,
                         default=1)
     group = parser.add_mutually_exclusive_group()
@@ -51,11 +56,13 @@ def parse_arguments():
     group.add_argument('-trt', '--target-random',
                        help="Random target output",
                        action='store_true')
-    group.add_argument('-t', '--target', help="Custom target output",
+    group.add_argument('-t', '--target', help="Custom target output"
+                       "(space delimited)",
                        nargs='+', type=str)
     parser.add_argument('-tfc', '--target_free_count',
                         help=("Number of target values to force to accept any "
-                              "input value (default=0)"),
+                              "input value (default=0). Useful for making "
+                              "easier targets."),
                         type=non_negative_integer,
                         default=0)
     parser.add_argument('-tv', '--term-variables',
@@ -96,7 +103,9 @@ def parse_arguments():
         'Deep Drilling Algorithm only options')
     dda_group.add_argument('-m',
                            help=("The value of m to use for the "
-                                 "Deep Drilling Algorithm."),
+                                 "Deep Drilling Algorithm. This determines "
+                                 "the tree height of the test terms. "
+                                 "(default=2)"),
                            type=positive_integer, default=2)
     beam_group = parser.add_argument_group('Beam algorithm only options')
     beam_group.add_argument('-bw', '--beam-width',
@@ -122,7 +131,7 @@ def parse_arguments():
                           help=("Probability values to use at height 1."),
                           nargs='+', type=restricted_float)
     ac_group.add_argument('-th', '--table-height',
-                          help=("Print a table of this height."),
+                          help=("Print a table of this height. (default=700)"),
                           type=positive_integer, default=700)
 
     return parser.parse_args()
