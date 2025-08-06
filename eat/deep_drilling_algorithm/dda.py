@@ -10,14 +10,13 @@ LOG = get_logger('dda_logger')
 class Node():
 
     def __init__(self, term, array, parent, term_operation,
-                 left_child=None, right_child=None, label=None):
+                 left_child=None, right_child=None):
         self.term = term
         self.to = term_operation
         self.array = array
         self.parent_node = parent
         self.left_child = left_child
         self.right_child = right_child
-        self.label = label
 
 
 class DeepDrillingAlgorithm():
@@ -88,36 +87,34 @@ class DeepDrillingAlgorithm():
         """
         direction = self.determine_branching_direction(node)
         if not direction:
+            if verbose:
+                LOG.info("No direction available, returning")
             return
         elif direction == "L":
+            if verbose:
+                LOG.info("Taking left branch")
             if node.right_child:
                 female_term = "F" + node.right_child.term + "*"
                 is_valid, new_array = self.to.compute_validity_array(
                     female_term, node.array)
-                new_label = "{}({})".format(
-                    direction, node.right_child.label)
                 if not is_valid:
                     raise ValueError("Validity array is not valid")
             else:
                 new_array = self.to.l_array(node.array)
-                new_label = "{}{}".format(direction, node.label)
         elif direction == "R":
+            if verbose:
+                LOG.info("Taking right branch")
             if node.left_child:
                 female_term = node.left_child.term + "F*"
                 is_valid, new_array = self.to.compute_validity_array(
                     female_term, node.array)
-                new_label = "{}({})".format(
-                    direction, node.left_child.label)
                 if not is_valid:
                     raise ValueError("Validity array is not valid")
             else:
                 new_array = self.to.r_array(node.array)
-                new_label = "{}{}".format(direction, node.label)
-        if verbose:
-            LOG.info("Current Node: {}, Next Node: {}".format(
-                node.label, new_label))
+
         # create a new node and attach it to the parent node
-        new_node = Node("", new_array, node, self.to, label=new_label)
+        new_node = Node("", new_array, node, self.to)
         if direction == "L":
             node.left_child = new_node
         elif direction == "R":
@@ -132,13 +129,15 @@ class DeepDrillingAlgorithm():
             node (Node): The starting node
             direction (str): The direction to take, left or right
         """
+        if verbose:
+            LOG.info("Starting tree building")
+
         # Check if any of the test terms are a solution, if so return the term
         solution_term = self.get_solution_term(node)
         if solution_term:
             node.term = solution_term
             if verbose:
-                LOG.info("Found {} as a solution to {}".format(
-                    solution_term, node.label))
+                LOG.info("Root node is solution: {}".format(solution_term))
             return node
 
         # Start exploring the tree
@@ -149,14 +148,20 @@ class DeepDrillingAlgorithm():
             if not child_node:
                 # No new node to explore. Backtrack to the parent node,
                 # or return the root node.
+                if verbose:
+                    LOG.info("Backtracking - combining child terms")
                 current_node.term = combine_postfix(
                     current_node.left_child.term,
                     current_node.right_child.term)
                 current_node.array = self.to.compute(current_node.term)
                 if current_node.parent_node:
                     current_node = current_node.parent_node
+                    if verbose:
+                        LOG.info("Moved to parent node")
                 else:
                     # We're at the root, return the root node
+                    if verbose:
+                        LOG.info("Reached root node - search complete")
                     return current_node
             else:
                 # We have a new node to explore
@@ -166,24 +171,29 @@ class DeepDrillingAlgorithm():
                     child_node.term = solution_term
                     child_node.array = self.to.compute(solution_term)
                     if verbose:
-                        LOG.info("Found {} as a solution to {}".format(
-                            child_node.term, child_node.label))
-                        LOG.info("Term array = {}".format(child_node.array))
+                        LOG.info("Child node solution found: {}".format(solution_term))
                 else:
                     # Otherwise continue to search in a random direction
                     # higher up the tree
                     current_node = child_node
+                    if verbose:
+                        LOG.info("Moving to new child node")
 
     def run(self, verbose=False, print_summary=False):
         """
         Run the deep drilling algorithm.
         """
-        start = time.perf_counter()
         if verbose:
-            LOG.info("Current Node: Root (T)")
-        root_node = Node("", self.to.target, None, self.to, label="T")
+            LOG.info("Deep Drilling Algorithm starting")
+
+        start = time.perf_counter()
+        root_node = Node("", self.to.target, None, self.to)
         sol_node = self.build_term_tree(root_node, verbose=verbose)
         end = time.perf_counter()
+
+        if verbose:
+            LOG.info("Algorithm completed")
+
         if (print_summary or verbose):
             log_search_summary(sol_node, None, self.to, self.grp, start, end,
                                LOG, show_creation_history=False)
