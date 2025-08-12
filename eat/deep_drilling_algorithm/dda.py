@@ -10,13 +10,15 @@ LOG = get_logger('dda_logger')
 class Node():
 
     def __init__(self, term, array, parent, term_operation,
-                 left_child=None, right_child=None):
+                 left_child=None, right_child=None, height: int = 0):
         self.term = term
         self.to = term_operation
         self.array = array
         self.parent_node = parent
         self.left_child = left_child
         self.right_child = right_child
+        # height of this node in the tree, root is height 0
+        self.height = height
 
 
 class DeepDrillingAlgorithm():
@@ -26,6 +28,11 @@ class DeepDrillingAlgorithm():
         self.to = term_operation
         self.vtg = ValidTermGenerator(self.to.term_variables)
         self._test_terms = self.generate_test_terms(m=m)
+        # Search metrics
+        self.branch_up: int = 0
+        self.branch_down: int = 0
+        self.max_tree_height: int = 0  # maximum node height encountered
+        self._run_start_time: float | None = None
 
     @property
     def test_terms(self):
@@ -114,7 +121,7 @@ class DeepDrillingAlgorithm():
                 new_array = self.to.r_array(node.array)
 
         # create a new node and attach it to the parent node
-        new_node = Node("", new_array, node, self.to)
+        new_node = Node("", new_array, node, self.to, height=node.height + 1)
         if direction == "L":
             node.left_child = new_node
         elif direction == "R":
@@ -155,6 +162,9 @@ class DeepDrillingAlgorithm():
                     current_node.right_child.term)
                 current_node.array = self.to.compute(current_node.term)
                 if current_node.parent_node:
+                    # backtracking (traversing back down toward the root)
+                    self.branch_down += 1
+                    self.log_progress_metrics(verbose)
                     current_node = current_node.parent_node
                     if verbose:
                         LOG.info("Moved to parent node")
@@ -171,10 +181,15 @@ class DeepDrillingAlgorithm():
                     child_node.term = solution_term
                     child_node.array = self.to.compute(solution_term)
                     if verbose:
-                        LOG.info("Child node solution found: {}".format(solution_term))
+                        LOG.info("Child node solution found: {}".format(
+                                 solution_term))
                 else:
                     # Otherwise continue to search in a random direction
                     # higher up the tree
+                    self.branch_up += 1
+                    if child_node.height > self.max_tree_height:
+                        self.max_tree_height = child_node.height
+                    self.log_progress_metrics(verbose)
                     current_node = child_node
                     if verbose:
                         LOG.info("Moving to new child node")
@@ -186,8 +201,14 @@ class DeepDrillingAlgorithm():
         if verbose:
             LOG.info("Deep Drilling Algorithm starting")
 
+        # reset metrics for this run
+        self.branch_up = 0
+        self.branch_down = 0
+        self.max_tree_height = 0
+
         start = time.perf_counter()
-        root_node = Node("", self.to.target, None, self.to)
+        self._run_start_time = start
+        root_node = Node("", self.to.target, None, self.to, height=0)
         sol_node = self.build_term_tree(root_node, verbose=verbose)
         end = time.perf_counter()
 
@@ -197,7 +218,54 @@ class DeepDrillingAlgorithm():
         if (print_summary or verbose):
             log_search_summary(sol_node, None, self.to, self.grp, start, end,
                                LOG, show_creation_history=False)
+            # Log basic metrics
+            self.log_progress_metrics(verbose)
         else:
             if verbose:
                 LOG.info(sol_node.term)
-        return sol_node, end - start
+        # compute duration consistently with what we log, then clear timer
+        duration = time.perf_counter() - start
+        self._run_start_time = None
+        return sol_node, duration
+
+    def log_progress_metrics(self, verbose: bool) -> None:
+        """Log current search progress metrics if verbose.
+
+        Metrics include branch_up, branch_down, up/down ratio, and
+        max_tree_height.
+        """
+        if not verbose:
+            return
+        metrics = self.get_search_metrics()
+        LOG.info(
+            "Progress metrics | branch_up=%d, branch_down=%d, up/down=%.2f, "
+            "max_tree_height=%d, elapsed=%.3fs",
+            metrics["branch_up"],
+            metrics["branch_down"],
+            metrics["ratio_up_down"],
+            metrics["max_tree_height"],
+            metrics["elapsed_s"],
+        )
+
+    def get_search_metrics(self):
+        """Return current search metrics as a dict.
+
+        Returns:
+            dict: {"branch_up": int, "branch_down": int, "ratio_up_down": float,
+                   "max_tree_height": int, "elapsed_s": float}
+        """
+        if self.branch_down > 0:
+            ratio_up_down = self.branch_up / float(self.branch_down)
+        else:
+            ratio_up_down = float('inf') if self.branch_up > 0 else 0.0
+        if self._run_start_time is not None:
+            elapsed_s = time.perf_counter() - self._run_start_time
+        else:
+            elapsed_s = 0.0
+        return {
+            "branch_up": self.branch_up,
+            "branch_down": self.branch_down,
+            "ratio_up_down": ratio_up_down,
+            "max_tree_height": self.max_tree_height,
+            "elapsed_s": elapsed_s,
+        }

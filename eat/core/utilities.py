@@ -110,7 +110,7 @@ def log_search_summary(node, last_node, term_operation, groupoid,
     log.info(node.term)
     log.info("Term length  = {}".format(len(node.term)))
     log.info("Search time  = {} sec".format(
-        round(algorithm_end_time - algorithm_start_time, 2)))
+        round(algorithm_end_time - algorithm_start_time, 3)))
     log.info("Term array   = {}".format(
           condensed_array(term_operation.compute(node.term), groupoid.size)))
     log.info("Target array = {}".format(
