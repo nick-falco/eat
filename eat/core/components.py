@@ -2,23 +2,19 @@ import itertools
 import math
 from random import choice, uniform
 from collections import OrderedDict, deque
-from eat.core.utilities import subset_sums, get_term_variables
+from eat.core.utilities import subset_sums, get_term_variables, \
+    get_input_tuples, get_target_indexes_not_preserving_idempotents
 
 
 class Groupoid():
 
-    def __init__(self, data=None):
+    def __init__(self, data):
         """
         Construtor for a groupoid. If data is not supplied, a randomly
         filled 3 element groupoid is created.
         """
-        if data:
-            self.size = self.get_groupoid_size(data)
-            self.data = self.list_to_groupoid_data(data)
-        else:
-            self.data = self.get_random_primal_groupoid_data(size=3)
-            self.size = self.get_groupoid_size(
-                self.groupoid_data_to_list(self.data))
+        self.size = self.get_groupoid_size(data)
+        self.data = self.list_to_groupoid_data(data)
 
     def __str__(self):
         return "\n".join([" ".join(
@@ -145,99 +141,6 @@ class Groupoid():
         return [groupoid_values[i:i+size]
                 for i in range(0, len(groupoid_values), size)]
 
-    def get_random_groupoid_data(self, size=None):
-        """
-        Generate randomly filled groupoid data
-
-        :type size: int
-        :param size: number of groupoid cells per row
-
-        :rtype: list
-        :return: groupoid data as a list of lists
-        """
-        if size is None:
-            size = self.size
-
-        assigned_indexes = []  # keep track of assigned indexes
-        groupoid_cell_count = pow(size, 2)
-        groupoid_values = [None] * groupoid_cell_count
-
-        for _ in range(0, size**2):
-            # choose a random input value
-            possible_inputs = [i for i in range(0, size)]
-            input_value = choice(possible_inputs)
-            # choose random groupoid cell [0, groupoid_cell_count-1]
-            cell = choice([i for i in range(0, groupoid_cell_count)
-                           if i not in assigned_indexes])
-            assigned_indexes.append(cell)
-            # assign random input value to a random groupoid cell
-            groupoid_values[cell] = input_value
-        return self.list_to_groupoid_data(groupoid_values, size)
-
-    def get_random_primal_groupoid_data(self, size=None):
-        """
-        Generate randomly filled primal groupoid data
-
-        :type size: int
-        :param size: number of groupoid cells per row
-
-        :rtype: list
-        :return: groupoid data as a list of lists
-        """
-        if size is None:
-            size = self.size
-
-        groupoid_cell_count = pow(size, 2)
-        groupoid_values = [None] * groupoid_cell_count
-
-        # find subset sum resulting in the total number of groupoid cells
-        subset_sum = choice(subset_sums(range(1, groupoid_cell_count-1),
-                                        groupoid_cell_count,
-                                        size))
-
-        assigned_indexes = []  # keep track of assigned indexes
-        assigned_inputs = []  # keep track of assigned input values
-        index_by_input = {}  # keep track of indexes for a given input
-        for num_inputs in subset_sum:
-            # choose a random input value
-            possible_inputs = [i for i in range(0, size)
-                               if i not in assigned_inputs]
-            input_value = choice(possible_inputs)
-            assigned_inputs.append(input_value)
-            index_by_input[input_value] = []
-            # for each subset sum value, assign input value to randomly
-            # selected groupoid cells
-            for _ in range(0, num_inputs):
-                # choose random groupoid cell [0, groupoid_cell_count-1]
-                cell = choice([i for i in range(0, groupoid_cell_count)
-                               if i not in assigned_indexes])
-                assigned_indexes.append(cell)
-                index_by_input[input_value].append(cell)
-                # assign random input value to a random groupoid cell
-                groupoid_values[cell] = input_value
-
-        # swap diagional values if they match inputs
-        curr_diag_idx = 0
-        input_value = 0
-        step = size
-        while curr_diag_idx < len(groupoid_values):
-            curr_diagonal = groupoid_values[curr_diag_idx]
-            if curr_diagonal == input_value:
-                # swap diagonal with another value
-                if input_value < size-1:
-                    # swap with larger input value
-                    swap_index = index_by_input[input_value+1][0]
-                else:
-                    # swap with smaller input value
-                    swap_index = index_by_input[input_value-1][0]
-                # swap the diagonal with a different value
-                groupoid_values[curr_diag_idx], groupoid_values[swap_index] = \
-                    groupoid_values[swap_index], groupoid_values[curr_diag_idx]
-            input_value += 1
-            curr_diag_idx += step + 1
-        return self.list_to_groupoid_data(groupoid_values, size)
-
-
 class TermOperation():
 
     def __init__(self, groupoid, target=None,
@@ -247,7 +150,7 @@ class TermOperation():
         :param groupoid: groupoid to apply term operation on
         :type target: list
         :param target: the target array to find a term solution for. If a
-          target is not specified, a random target will be used.
+          target is not specified, default to a ternary descriminator target.
         :type term_variables: list
         :param term_variables: list of possible variables in a term. If
           term variables are not specified, they will be created to match
@@ -264,7 +167,7 @@ class TermOperation():
         if target:
             self.target = target
         else:
-            self.target = self.get_random_target_array()
+            self.target = self.get_ternary_descriminator_target_array()
 
     def __str__(self):
         value = []
@@ -311,16 +214,15 @@ class TermOperation():
         e.g. [(0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1) ... etc.]
 
         :type size: int
-        :param size: number of possible term elements
+        :param size: number of possible term elements, defaults to groupoid
+            size
 
         :rtype: list
         :return: list of term operation inputs
         """
         if size is None:
             size = self.groupoid.size
-        return [tuple(p) for p in itertools.product(
-                range(self.groupoid.size),
-                repeat=size)]
+        return get_input_tuples(size)
 
     def get_random_target_array(self):
         """
@@ -335,9 +237,21 @@ class TermOperation():
         :rtype: list
         :return: list of random term operation outputs
         """
-        return [[choice(range(0, self.groupoid.size))]
-                for _ in range(0, pow(self.groupoid.size,
-                                      len(self.term_variables)))]
+        inputs = self.get_input_array()
+        outputs = []
+
+        # Generate completely random outputs for all inputs
+        for input_tuple in inputs:
+            outputs.append([choice(range(self.groupoid.size))])
+        
+        # Fix any positions that don't preserve idempotents
+        indexes = get_target_indexes_not_preserving_idempotents(
+            self.groupoid, outputs)
+        for idx in indexes:
+            x = inputs[idx][0]  # All values in diagonal tuple are the same
+            outputs[idx] = [x]
+
+        return outputs
 
     def get_ternary_descriminator_target_array(self):
         """
@@ -646,16 +560,3 @@ class ValidTermGenerator():
             return self.random_term_generation(**kwargs)
         else:
             raise ValueError("Unkown algorithm {}.")
-
-    def generate_list(self, number_male_terms, algorithm="GRA", **kwargs):
-        male_terms = {}
-        count = 0
-        while count < number_male_terms:
-            random_term = self.generate(algorithm=algorithm, **kwargs)
-            if not male_terms.get(random_term):
-                male_terms[random_term] = random_term
-                count += 1
-            else:
-                # we already found this term
-                continue
-        return list(male_terms.values())

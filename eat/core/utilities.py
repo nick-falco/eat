@@ -108,7 +108,8 @@ def log_search_summary(node, last_node, term_operation, groupoid,
     log.info(groupoid)
     log.info("Computed term:")
     log.info(node.term)
-    log.info("Term length  = {}".format(len(node.term)))
+    var_occurences = int((len(node.term) + 1) / 2)
+    log.info("Term length (variable occurrences) = {}".format(var_occurences))
     log.info("Search time  = {} sec".format(
         round(algorithm_end_time - algorithm_start_time, 3)))
     log.info("Term array   = {}".format(
@@ -160,3 +161,51 @@ def log_ac_table(table_output, log):
             f"{v:.6f}".ljust(header_width)
             for v, header_width in zip(row, header_widths)])
         log.info(row_str)
+
+
+def get_input_tuples(size):
+    """
+    Returns a list of input tuples for a given groupoid size.
+
+    e.g. [(0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1) ... etc.]
+
+    :type size: int
+    :param size: number of possible term elements
+
+    :rtype: list
+    :return: list of term operation inputs
+    """
+    return [tuple(p) for p in itertools.product(
+            range(size),
+            repeat=size)]
+
+
+def get_target_indexes_not_preserving_idempotents(groupoid, target):
+    """
+    Returns a list of target indexes where the target does not preserve
+    idempotents for a specified groupoid. An element e is an idempotent if
+    e*e = e. For idempotents, target(e,e,e) must equal e. For example, if
+    1*1=1 (1 is an idempotent) and the target has 2 for (1,1,1), then the
+    index of (1,1,1) will be returned.
+
+    :type groupoid: Groupoid
+    :param groupoid: Groupoid used to check for idempotents
+    :type target: list
+    :param target: the target to check for preserved idempotents
+
+    :rtype: list
+    :return: list of target indexes that don't preserve idempotents
+    """
+    problematic_indexes = []
+    for idx, input_row in enumerate(get_input_tuples(groupoid.size)):
+        # Only consider diagonal tuples like (0,0,0), (1,1,1), etc.
+        if len(set(input_row)) == 1:
+            v = input_row[0]
+            # Only check if v is an idempotent (v*v = v)
+            if groupoid.get_value(v, v) == v:
+                # For idempotents, target(v,v,v) must equal v
+                # Target can be either a flat list or list of lists
+                target_value = target[idx][0] if isinstance(target[idx], list) else target[idx]
+                if target_value != v:
+                    problematic_indexes.append(idx)
+    return problematic_indexes

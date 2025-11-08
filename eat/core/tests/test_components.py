@@ -40,7 +40,9 @@ class TestTermOperation(unittest.TestCase):
         self.assertEqual(r_array, [[0, 1, 2], [0], [1], [0, 1]])
 
     def test_is_solution(self):
-        grp = Groupoid()
+        grp = Groupoid(data=[1, 1, 2,
+                             0, 2, 0,
+                             0, 2, 1])
         to = TermOperation(grp)
         self.assertTrue(to.is_solution([[0], [1], [0], [2]],
                                        [[0], [1], [0], [2]]))
@@ -92,7 +94,7 @@ class TestTermOperation(unittest.TestCase):
             [[0], [2], [1], [0], [0], [0], [0], [0], [0], [0, 1], [0, 1],
              [0, 1], [0], [2], [1], [2], [2], [2], [1], [1], [1], [1], [1],
              [1], [0], [2], [1]])
-
+        
 
 if __name__ == "__main__":
     unittest.main()

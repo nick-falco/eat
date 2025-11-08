@@ -6,7 +6,7 @@ from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
 from eat.core.utilities import log_execution_results_summary, \
-    log_ac_table, get_logger
+    log_ac_table, get_logger, get_target_indexes_not_preserving_idempotents
 from eat.utilities.argparse_types import non_negative_integer, \
     positive_integer, restricted_float
 
@@ -292,6 +292,11 @@ def main():
     if args.target:
         to.target = \
             [[int(v) for v in t.split(",")] for t in args.target]
+        idx_with_idempotents = get_target_indexes_not_preserving_idempotents(grp, to.target)
+        if idx_with_idempotents:
+            print(f"Error: Idempotents are not preserved for your groupoid and target. "
+                f"Check target values at {idx_with_idempotents}")
+            sys.exit(1)
     elif args.target_random:
         to.target = to.get_random_target_array()
     elif args.target_ternary_descriminator:
@@ -356,6 +361,10 @@ def main():
     total_term_length = 0
     for i in range(run_count):
         if (algorithm == "MFBA" or algorithm == "FBA" or algorithm == "SBA"):
+            print(f"Running algorithm: {algorithm} (Run {i+1} of {run_count})")
+            print(f"Groupoid:\n{grp}")
+            print(f"Target array: {to.target}")
+            print("--------------------------")
             beam = BeamEnumerationAlgorithm(
                                 grp,
                                 to,
@@ -368,6 +377,10 @@ def main():
                 verbose=verbose, print_summary=print_summary,
                 include_validity_array=include_validity_array)
         elif algorithm == "DDA":
+            print(f"Running algorithm: Deep Drilling Algorithm (Run {i+1} of {run_count})")
+            print(f"Groupoid: {grp}")
+            print(f"Target array: {to.target}")
+            print("--------------------------")
             dda = DeepDrillingAlgorithm(grp, to, m=args.m)
             node, search_time = \
                 dda.run(verbose=verbose, print_summary=print_summary)
