@@ -60,12 +60,14 @@ def parse_arguments():
         usage='eat [-h] [--version] -g GROUPOID [GROUPOID ...] '
               '[(-tdt | -trt | -t TARGET [TARGET ...]) | -ac] [options...]',
         description=(
-            colorize('🧮 Evolution of Algebraic Terms (EAT', BOLD_BLUE) + " "
-            + colorize(VERSION, BOLD_GREEN) + colorize(') 🧮', BOLD_BLUE) +
+            colorize('🧮 Evolution of Algebraic Terms (EAT',
+                     BOLD_BLUE) + " " +
+            colorize(VERSION, BOLD_GREEN) + colorize(') 🧮', BOLD_BLUE) +
             "\n\n" +
-            colorize('Python implementation of algorithms from', CYAN) + " " +
+            colorize('Python implementation of algorithms from', CYAN) +
+            " " +
             colorize('"Evolution of Algebraic Terms 4: Biological Beam '
-            'Algorithms."', BOLD) + " " +
+                     'Algorithms."', BOLD) + " " +
             "Given an arbitrary performance specification, systematically "
             "designs "
             "digital circuits using binary logic on groupoids of size 3 "
@@ -74,7 +76,7 @@ def parse_arguments():
             colorize('💡 Quick start:', BOLD_YELLOW) + " " +
             colorize('eat -g 2 1 2 1 0 0 0 0 1 -tdt', CYAN) + "\n" +
             "   " + colorize('(-tdt = ternary discriminator target '
-            'operation)', MAGENTA) + "\n" +
+                             'operation)', MAGENTA) + "\n" +
             "   Verbose output and summaries enabled by default."
         ),
         epilog=(
@@ -116,9 +118,9 @@ def parse_arguments():
 
     # ========== REQUIRED ARGUMENTS (grouped together) ==========
     required_group = parser.add_argument_group(
-        '🔥 ' + colorize('REQUIRED ARGUMENTS', BOLD_YELLOW) + 
+        '🔥 ' + colorize('REQUIRED ARGUMENTS', BOLD_YELLOW) +
         ' (groupoid always required, target required unless using -ac)')
-    
+
     required_group.add_argument('-g', '--groupoid',
                                 help=(
                                     colorize('⊞ Groupoid operation matrix',
@@ -131,91 +133,95 @@ def parse_arguments():
                                 nargs='+',
                                 type=non_negative_integer,
                                 required=True)
-    
-    target_mutex = required_group.add_mutually_exclusive_group(required=False)
-    target_mutex.add_argument('-tdt', '--target-ternary-descriminator',
-                              help=(
-                                  "🎯 " + colorize('Ternary discriminator ' +
-                                                  'target', CYAN) + " output"),
-                              action='store_true')
-    target_mutex.add_argument('-trt', '--target-random',
-                              help=(
-                                  "🎲 " + colorize('Random target', CYAN) +
-                                  " output"),
-                              action='store_true')
-    target_mutex.add_argument('-t', '--target',
-                              help=(
-                                  "🎨 " + colorize('Custom target', CYAN) +
-                                  " output (space delimited)"),
-                              nargs='+', type=str)
+
+    target_mutex = required_group.add_mutually_exclusive_group(
+        required=False)
+    target_mutex.add_argument(
+        '-tdt', '--target-ternary-descriminator',
+        help=("🎯 " + colorize('Ternary discriminator target', CYAN) +
+              " output"),
+        action='store_true')
+    target_mutex.add_argument(
+        '-trt', '--target-random',
+        help=("🎲 " + colorize('Random target', CYAN) + " output"),
+        action='store_true')
+    target_mutex.add_argument(
+        '-t', '--target',
+        help=("🎨 " + colorize('Custom target', CYAN) +
+              " output (space delimited)"),
+        nargs='+', type=str)
 
     # ========== OPTIONAL ARGUMENTS ==========
     optional_group = parser.add_argument_group(
         '⚙️  ' + colorize('Optional Configuration', BLUE))
-    
-    optional_group.add_argument('-a', '--algorithm',
-                                help=(
-                                    colorize('🔍 Evolutionary search algorithm', BLUE) +
-                                    " " +
-                                    "(default: " + colorize('MFBA', BOLD) + "). " +
-                                    colorize('DDA', MAGENTA) +
-                                    " = Deep Drilling Algorithm, " +
-                                    colorize('MFBA', MAGENTA) +
-                                    " = Male-Female Beam " +
-                                    "Algorithm, " + colorize('FBA', MAGENTA) +
-                                    " = Female Beam Algorithm, " +
-                                    colorize('SBA', MAGENTA) +
-                                    " = Sample Beam Algorithm"),
-                                type=str, default="MFBA",
-                                choices=["DDA", "MFBA", "FBA", "SBA"])
-    optional_group.add_argument('-rc', '--run-count',
-                                help=(
-                                    "🔄 Number of evolutionary runs (default: 1). "
-                                    "Multiple runs provide statistical data about "
-                                    "algorithm performance"),
-                                type=non_negative_integer,
-                                default=1)
-    optional_group.add_argument('-tfc', '--target_free_count',
-                                help=("Number of target values to force to accept any "
-                                      "input value (default=0)."),
-                                type=non_negative_integer,
-                                default=0)
-    optional_group.add_argument('-tv', '--term-variables',
-                                help="Term variables to use. (default=['x','y',z'])",
-                                nargs='+', type=str, default=["x", "y", "z"])
+
+    optional_group.add_argument(
+        '-a', '--algorithm',
+        help=(colorize('🔍 Evolutionary search algorithm', BLUE) +
+              " " +
+              "(default: " + colorize('MFBA', BOLD) + "). " +
+              colorize('DDA', MAGENTA) +
+              " = Deep Drilling Algorithm, " +
+              colorize('MFBA', MAGENTA) +
+              " = Male-Female Beam " +
+              "Algorithm, " + colorize('FBA', MAGENTA) +
+              " = Female Beam Algorithm, " +
+              colorize('SBA', MAGENTA) +
+              " = Sample Beam Algorithm"),
+        type=str, default="MFBA",
+        choices=["DDA", "MFBA", "FBA", "SBA"])
+    optional_group.add_argument(
+        '-rc', '--run-count',
+        help=("🔄 Number of evolutionary runs (default: 1). "
+              "Multiple runs provide statistical data about "
+              "algorithm performance"),
+        type=non_negative_integer,
+        default=1)
+    optional_group.add_argument(
+        '-tfc', '--target_free_count',
+        help=("Number of target values to force to accept any "
+              "input value (default=0)."),
+        type=non_negative_integer,
+        default=0)
+    optional_group.add_argument(
+        '-tv', '--term-variables',
+        help="Term variables to use. (default=['x','y',z'])",
+        nargs='+', type=str, default=["x", "y", "z"])
     vtg_group = parser.add_argument_group(
         '🔧 ' + colorize('Valid term generator options', MAGENTA))
-    vtg_group.add_argument('-mtgm', '--male-term-generation-method',
-                           choices=["GRA", "random-term-generation"],
-                           help=("Male term generation method (default: "
-                                 "random-term-generation). "
-                                 "GRA = Gambler's Ruin Algorithm for "
-                                 "stochastic term construction, "
-                                 "random-term-generation = Modified GRA "
-                                 "with adaptive term tree selection (1-4 "
-                                 "variables)"),
-                           default="random-term-generation")
-    vtg_group.add_argument('-p', '--probability',
-                           help=("For random term generation specify the "
-                                 "probability of growing the random term. "
-                                 "Must be a number between 0 and 1. "
-                                 "(default = 0.1 = 10%%)"),
-                           type=restricted_float, default=0.1)
+    vtg_group.add_argument(
+        '-mtgm', '--male-term-generation-method',
+        choices=["GRA", "random-term-generation"],
+        help=("Male term generation method (default: "
+              "random-term-generation). "
+              "GRA = Gambler's Ruin Algorithm for "
+              "stochastic term construction, "
+              "random-term-generation = Modified GRA "
+              "with adaptive term tree selection (1-4 "
+              "variables)"),
+        default="random-term-generation")
+    vtg_group.add_argument(
+        '-p', '--probability',
+        help=("For random term generation specify the "
+              "probability of growing the random term. "
+              "Must be a number between 0 and 1. "
+              "(default = 0.1 = 10%%)"),
+        type=restricted_float, default=0.1)
     log_group = parser.add_argument_group(
-        '📋 ' + colorize('Output Control', GREEN) + 
+        '📋 ' + colorize('Output Control', GREEN) +
         ' (verbose & summaries ON by default)')
-    log_group.add_argument('-q', '--quiet', 
-                           help=(
-                               "🔇 Disable verbose output (ON by default). "
-                               "Minimal output showing only final results"),
-                           action='store_true', default=False)
-    log_group.add_argument('--no-print-summary',
-                           help=(
-                               "📊 Disable result summary (ON by default). "
-                               "Disables statistical summary of "
-                               "performance metrics, execution time, and "
-                               "solution quality"),
-                           action='store_true', default=False)
+    log_group.add_argument(
+        '-q', '--quiet',
+        help=("🔇 Disable verbose output (ON by default). "
+              "Minimal output showing only final results"),
+        action='store_true', default=False)
+    log_group.add_argument(
+        '--no-print-summary',
+        help=("📊 Disable result summary (ON by default). "
+              "Disables statistical summary of "
+              "performance metrics, execution time, and "
+              "solution quality"),
+        action='store_true', default=False)
     dda_group = parser.add_argument_group(
         '⛏️  ' + colorize('Deep Drilling Algorithm only options', CYAN))
     dda_group.add_argument('-m',
@@ -259,27 +265,27 @@ def parse_arguments():
                           type=positive_integer, default=700)
 
     import sys
-    
+
     # Show help if no arguments provided
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)
-    
-    return parser.parse_args()
 
+    return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
-    
+
     # Validate that either a target is specified OR -ac is used
-    if not args.asymptotic_complete and not (args.target or 
-                                            args.target_random or 
-                                            args.target_ternary_descriminator):
+    if not args.asymptotic_complete and not (
+            args.target or
+            args.target_random or
+            args.target_ternary_descriminator):
         print("Error: A target must be specified (use -tdt, -trt, or -t) " +
               "unless using -ac for asymptotic completeness analysis.")
         sys.exit(1)
-    
+
     # create groupoid table
     grp = Groupoid(args.groupoid)
 
@@ -290,12 +296,14 @@ def main():
     to = TermOperation(grp,
                        **to_options)
     if args.target:
-        to.target = \
-            [[int(v) for v in t.split(",")] for t in args.target]
-        idx_with_idempotents = get_target_indexes_not_preserving_idempotents(grp, to.target)
+        to.target = [[int(v) for v in t.split(",")]
+                     for t in args.target]
+        idx_with_idempotents = \
+            get_target_indexes_not_preserving_idempotents(grp, to.target)
         if idx_with_idempotents:
-            print(f"Error: Idempotents are not preserved for your groupoid and target. "
-                f"Check target values at {idx_with_idempotents}")
+            print("Error: Idempotents are not preserved for your "
+                  "groupoid and target. "
+                  f"Check target values at {idx_with_idempotents}")
             sys.exit(1)
     elif args.target_random:
         to.target = to.get_random_target_array()
@@ -366,18 +374,19 @@ def main():
             print(f"Target array: {to.target}")
             print("--------------------------")
             beam = BeamEnumerationAlgorithm(
-                                grp,
-                                to,
-                                algorithm,
-                                male_term_generation_method=mtgm,
-                                term_expansion_probability=prob,
-                                beam_width=beam_width,
-                                sub_beam_width=sub_beam_width)
+                grp,
+                to,
+                algorithm,
+                male_term_generation_method=mtgm,
+                term_expansion_probability=prob,
+                beam_width=beam_width,
+                sub_beam_width=sub_beam_width)
             node, search_time = beam.run(
                 verbose=verbose, print_summary=print_summary,
                 include_validity_array=include_validity_array)
         elif algorithm == "DDA":
-            print(f"Running algorithm: Deep Drilling Algorithm (Run {i+1} of {run_count})")
+            print("Running algorithm: Deep Drilling Algorithm "
+                  f"(Run {i+1} of {run_count})")
             print(f"Groupoid: {grp}")
             print(f"Target array: {to.target}")
             print("--------------------------")

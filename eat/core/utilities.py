@@ -205,7 +205,8 @@ def get_target_indexes_not_preserving_idempotents(groupoid, target):
             if groupoid.get_value(v, v) == v:
                 # For idempotents, target(v,v,v) must equal v
                 # Target can be either a flat list or list of lists
-                target_value = target[idx][0] if isinstance(target[idx], list) else target[idx]
+                target_value = (target[idx][0] if isinstance(
+                    target[idx], list) else target[idx])
                 if target_value != v:
                     problematic_indexes.append(idx)
     return problematic_indexes

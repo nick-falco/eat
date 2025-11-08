@@ -1,8 +1,7 @@
-import itertools
 import math
 from random import choice, uniform
 from collections import OrderedDict, deque
-from eat.core.utilities import subset_sums, get_term_variables, \
+from eat.core.utilities import get_term_variables, \
     get_input_tuples, get_target_indexes_not_preserving_idempotents
 
 
@@ -141,6 +140,7 @@ class Groupoid():
         return [groupoid_values[i:i+size]
                 for i in range(0, len(groupoid_values), size)]
 
+
 class TermOperation():
 
     def __init__(self, groupoid, target=None,
@@ -243,7 +243,7 @@ class TermOperation():
         # Generate completely random outputs for all inputs
         for input_tuple in inputs:
             outputs.append([choice(range(self.groupoid.size))])
-        
+
         # Fix any positions that don't preserve idempotents
         indexes = get_target_indexes_not_preserving_idempotents(
             self.groupoid, outputs)

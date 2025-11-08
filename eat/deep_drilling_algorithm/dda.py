@@ -251,8 +251,9 @@ class DeepDrillingAlgorithm():
         """Return current search metrics as a dict.
 
         Returns:
-            dict: {"branch_up": int, "branch_down": int, "ratio_up_down": float,
-                   "max_tree_height": int, "elapsed_s": float}
+            dict: {"branch_up": int, "branch_down": int,
+                   "ratio_up_down": float, "max_tree_height": int,
+                   "elapsed_s": float}
         """
         if self.branch_down > 0:
             ratio_up_down = self.branch_up / float(self.branch_down)
