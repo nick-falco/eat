@@ -358,8 +358,8 @@ def main():
         if include_validity_array and not verbose:
             raise ValueError("Verbose output must be enabled for the "
                              "--include-validity-array (-iva) option "
-                             "to apply. (Use --quiet to disable verbose\n"
-                             "output.)")
+                             "to apply. (Use -q or --quiet to disable "
+                             "verbose\noutput.)")
         if beam_width is None:
             beam_width = 3
         if sub_beam_width is None:
