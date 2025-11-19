@@ -37,7 +37,7 @@ $n = 3$ was found in 2008 [6] that took a run time of about 5 minutes. EAT gives
 
 ## Install Python
 If your computer does not already have **Python 3.7 or higher** installed, you will need to install it. To find out what version, if any, you already have,
-enter either `python --version` or `python3 --version`, (return). To install a current version, go to https://www.python.org/downloads and following the
+enter in the Terminal either `python --version` or `python3 --version`, (return). To install a current version, go to https://www.python.org/downloads and following the
 instructions for your operating system.
 
 - **For Mac and Linux:** After installing Python, you may need to restart your terminal
@@ -85,7 +85,7 @@ A central theme of the EAT publications referenced below, summarized in [4], is 
 
 Given a finite groupoid **G** $= ⟨G, ∗⟩$ and a ternary operation $f$ on $G$, it is often the case that there is _no_ term $t(x, y, z)$ that represents $f$ on **G**. But it turns out that a simple observation allows us to avoid almost all of these cases. An element $e \in G$ is an **idempotent** of **G** if $e ∗ e = e$. If $e$ is an idempotent, then, for every term $t(x, y, z)$, we have $t(e, e, e) = e$. Consequently, if $f(e, e, e) \neq e$, then there is _no_ term representing $f$ on **G**.
 
-We say that $f$ **preserves idempotents** on **G** if $f(e, e, e) = e$ for every idempotent $e$. A famous theorem of V. L. Murskı̆ı [5] says that, for almost all finite groupoids, every operation that preserves idempotents is represented by some term. This is not true of many 3-element groupoids. But the proportion of groupoids for which it is true grows rapidly with their size. It is true for about $90\%$ of 7-element groupoids and the proportion for which it is true grows rapidly toward $100\%$ beyond size 7. As a result, it is easy to find groupoids **G** and operations $f$ that are represented by some term on **G**.
+We say that $f$ **preserves idempotents** on **G** if $f(e, e, e) = e$ for every idempotent $e$. A famous theorem of V. L. Murskı̆ı [5] says that, for almost all finite groupoids, every operation that preserves idempotents is represented by some term. This is not true of many 3-element groupoids. But the proportion of groupoids for which it is true grows rapidly with their size. It is true for about 90% of 7-element groupoids and the proportion for which it is true grows rapidly toward 100% beyond size 7. As a result, it is easy to find groupoids **G** and operations $f$ that are represented by some term on **G**.
 
 The EAT programs use this idea with the three methods of specifying target operations. Using `-ttd`, the discriminator operation $d$ preserves idempotents since $d(a, a, a) = a$ for all $a \in G$. When `-trg` is used, random values are assigned to all triples except idempotent triples $(e, e, e)$, which are assigned value $e$. When `−t` is used, an error message is produced if some idempotent triple $(e, e, e)$ is assigned something other than e. In this way users will usually be looking at groupoids **G** with target operations $f$ that are represented by some term and almost always when the they are looking at larger groupoids.
 
