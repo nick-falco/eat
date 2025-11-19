@@ -95,6 +95,24 @@ class TestTermOperation(unittest.TestCase):
              [0, 1], [0], [2], [1], [2], [2], [2], [1], [1], [1], [1], [1],
              [1], [0], [2], [1]])
 
+    def test_target_length_validation(self):
+        grp = Groupoid(data=[0, 1, 2,
+                             1, 0, 2,
+                             2, 2, 0])
+        with self.assertRaises(ValueError) as ctx:
+            TermOperation(grp, target=[[0]])
+        self.assertIn("Target length does not match", str(ctx.exception))
+
+    def test_target_value_validation(self):
+        grp = Groupoid(data=[0, 1, 2,
+                             1, 0, 2,
+                             2, 2, 0])
+        term_op = TermOperation(grp)
+        invalid_target = [[3] for _ in range(len(term_op.input))]
+        with self.assertRaises(ValueError) as ctx:
+            term_op.target = invalid_target
+        self.assertIn("not present in the groupoid", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

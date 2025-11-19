@@ -6,7 +6,8 @@ from eat.beam_algorithm.beam import BeamEnumerationAlgorithm
 from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
 from eat.core.utilities import log_execution_results_summary, \
-    log_ac_table, get_logger, get_target_indexes_not_preserving_idempotents
+    log_ac_table, get_logger, get_target_indexes_not_preserving_idempotents, \
+    get_input_tuples
 from eat.utilities.argparse_types import non_negative_integer, \
     positive_integer, restricted_float
 
@@ -58,7 +59,7 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(
         usage='eat [-h] [--version] -g GROUPOID [GROUPOID ...] '
-              '[(-tdt | -trt | -t TARGET [TARGET ...]) | -ac] [options...]',
+              '[(-ttd | -trg | -t TARGET [TARGET ...]) | -ac] [options...]',
         description=(
             colorize('🧮 Evolution of Algebraic Terms (EAT',
                      BOLD_BLUE) + " " +
@@ -74,26 +75,26 @@ def parse_arguments():
             "or larger. Consistently finds designs from an incredibly "
             "vast search space in fractions of a second.\n\n" +
             colorize('💡 Quick start:', BOLD_YELLOW) + " " +
-            colorize('eat -g 2 1 2 1 0 0 0 0 1 -tdt', CYAN) + "\n" +
-            "   " + colorize('(-tdt = ternary discriminator target '
+            colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd', CYAN) + "\n" +
+            "   " + colorize('(-ttd = ternary discriminator target '
                              'operation)', MAGENTA) + "\n" +
             "   Verbose output and summaries enabled by default."
         ),
         epilog=(
             colorize('📚 EXAMPLES:', BOLD_BLUE) + "\n" +
-            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -tdt', CYAN) + "\n" +
+            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd', CYAN) + "\n" +
             "    Basic evolution using " + colorize('MFBA', MAGENTA) +
             " with ternary discriminator\n" +
             "    target\n\n" +
-            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -tdt -a DDA', CYAN) +
+            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd -a DDA', CYAN) +
             "\n" +
             "    " + colorize('Deep drilling algorithm', MAGENTA) +
             " for systematic search\n\n" +
-            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -trt -rc 10', CYAN) +
+            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -trg -rc 10', CYAN) +
             "\n" +
             "    Statistical analysis with " + colorize('10 runs', YELLOW) +
             " using random target\n\n" +
-            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -tdt -q', CYAN) + "\n" +
+            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd -q', CYAN) + "\n" +
             "    " + colorize('Quiet mode', YELLOW) +
             " showing only final results\n\n" +
             "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ac', CYAN) + "\n" +
@@ -137,18 +138,19 @@ def parse_arguments():
     target_mutex = required_group.add_mutually_exclusive_group(
         required=False)
     target_mutex.add_argument(
-        '-tdt', '--target-ternary-descriminator',
-        help=("🎯 " + colorize('Ternary discriminator target', CYAN) +
-              " output"),
+        '-ttd', '--target-ternary-discriminator',
+        help=("🎯 " + colorize('Ternary discriminator operation', CYAN) +
+              " d(a,b,c) = c if a = b, else a"),
         action='store_true')
     target_mutex.add_argument(
-        '-trt', '--target-random',
-        help=("🎲 " + colorize('Random target', CYAN) + " output"),
+        '-trg', '--target-random-generated',
+        help=("🎲 " + colorize('Randomly generated operation', CYAN) +
+              " (values listed for each triple)"),
         action='store_true')
     target_mutex.add_argument(
         '-t', '--target',
-        help=("🎨 " + colorize('Custom target', CYAN) +
-              " output (space delimited)"),
+        help=("🎨 " + colorize('User chosen target', CYAN) +
+              " (values listed for each triple, space delimited)"),
         nargs='+', type=str)
 
     # ========== OPTIONAL ARGUMENTS ==========
@@ -191,12 +193,12 @@ def parse_arguments():
         '🔧 ' + colorize('Valid term generator options', MAGENTA))
     vtg_group.add_argument(
         '-mtgm', '--male-term-generation-method',
-        choices=["GRA", "random-term-generation"],
+        choices=["gamblers-ruin-algorithm", "random-term-generation"],
         help=("Male term generation method (default: "
               "random-term-generation). "
-              "GRA = Gambler's Ruin Algorithm for "
+              "gamblers-ruin-algorithm = Gambler's Ruin Algorithm for "
               "stochastic term construction, "
-              "random-term-generation = Modified GRA "
+              "random-term-generation = Modified Gambler's Ruin Algorithm "
               "with adaptive term tree selection (1-4 "
               "variables)"),
         default="random-term-generation")
@@ -280,9 +282,9 @@ def main():
     # Validate that either a target is specified OR -ac is used
     if not args.asymptotic_complete and not (
             args.target or
-            args.target_random or
-            args.target_ternary_descriminator):
-        print("Error: A target must be specified (use -tdt, -trt, or -t) " +
+            args.target_random_generated or
+            args.target_ternary_discriminator):
+        print("Error: A target must be specified (use -ttd, -trg, or -t) " +
               "unless using -ac for asymptotic completeness analysis.")
         sys.exit(1)
 
@@ -296,18 +298,31 @@ def main():
     to = TermOperation(grp,
                        **to_options)
     if args.target:
-        to.target = [[int(v) for v in t.split(",")]
-                     for t in args.target]
+        try:
+            to.target = [[int(v) for v in t.split(",")]
+                         for t in args.target]
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
         idx_with_idempotents = \
             get_target_indexes_not_preserving_idempotents(grp, to.target)
         if idx_with_idempotents:
+            input_tuples = get_input_tuples(grp.size)
+            formatted_inputs = []
+            for idx in idx_with_idempotents:
+                if idx < len(input_tuples):
+                    formatted_inputs.append(
+                        "".join(str(value) for value in input_tuples[idx]))
+                else:
+                    formatted_inputs.append(str(idx))
+            display_values = f"[{', '.join(formatted_inputs)}]"
             print("Error: Idempotents are not preserved for your "
                   "groupoid and target. "
-                  f"Check target values at {idx_with_idempotents}")
+                  f"Check target values at {display_values}")
             sys.exit(1)
-    elif args.target_random:
+    elif args.target_random_generated:
         to.target = to.get_random_target_array()
-    elif args.target_ternary_descriminator:
+    elif args.target_ternary_discriminator:
         to.target = to.get_ternary_descriminator_target_array()
 
     if args.target_free_count > 0:

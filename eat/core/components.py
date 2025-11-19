@@ -164,10 +164,38 @@ class TermOperation():
         self.input = self.get_input_array(size=len(self.term_variables))
         self.mapped_input = self.get_mapped_input_array(
             size=len(self.term_variables))
-        if target:
+        self._target = None
+        if target is not None:
             self.target = target
         else:
             self.target = self.get_ternary_descriminator_target_array()
+
+    @property
+    def target(self):
+        return self._target
+
+    @target.setter
+    def target(self, value):
+        if value is None:
+            self._target = None
+            return
+        expected_length = len(self.input)
+        if len(value) != expected_length:
+            raise ValueError("Target length does not match the number of "
+                             "input tuples. Provided {}. Expected {}.".format(
+                                 len(value), expected_length))
+        for idx, target_entry in enumerate(value):
+            if not isinstance(target_entry, (list, tuple)):
+                raise ValueError(
+                    "Target entry at index {} must be a list or tuple of "
+                    "allowable outputs.".format(idx))
+            for element in target_entry:
+                if not isinstance(element, int) or element < 0 or \
+                        element >= self.groupoid.size:
+                    raise ValueError(
+                        "Target entry at index {} contains value '{}' not "
+                        "present in the groupoid.".format(idx, element))
+        self._target = value
 
     def __str__(self):
         value = []
@@ -551,12 +579,12 @@ class ValidTermGenerator():
             term = term.replace("I", choice(self.term_variables), 1)
         return term
 
-    def generate(self, algorithm="GRA", **kwargs):
+    def generate(self, algorithm="gamblers-ruin-algorithm", **kwargs):
         if kwargs is None:
             kwargs = {}
-        if algorithm == "GRA":
+        if algorithm == "gamblers-ruin-algorithm":
             return self.gamblers_ruin_algorithm(**kwargs)
         elif algorithm == "random-term-generation":
             return self.random_term_generation(**kwargs)
         else:
-            raise ValueError("Unkown algorithm {}.")
+            raise ValueError("Unknown algorithm: {}".format(algorithm))

@@ -109,7 +109,7 @@ def log_search_summary(node, last_node, term_operation, groupoid,
     log.info("Computed term:")
     log.info(node.term)
     var_occurences = int((len(node.term) + 1) / 2)
-    log.info("Term length (variable occurrences) = {}".format(var_occurences))
+    log.info("Variable length = {}".format(var_occurences))
     log.info("Search time  = {} sec".format(
         round(algorithm_end_time - algorithm_start_time, 3)))
     log.info("Term array   = {}".format(

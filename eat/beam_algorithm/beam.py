@@ -176,7 +176,8 @@ class BeamEnumerationAlgorithm():
 
     def __init__(self, groupoid, term_operation, algorithm,
                  term_expansion_probability=0.1,
-                 male_term_generation_method="GRA", beam_width=3,
+                 male_term_generation_method="gamblers-ruin-algorithm",
+                 beam_width=3,
                  sub_beam_width=3, logging_handler=None):
         if logging_handler:
             # Use the provided logging handler
@@ -209,7 +210,8 @@ class BeamEnumerationAlgorithm():
                             "python3.")
             pass
 
-    def get_male_term(self, generation_method="GRA", **kwargs):
+    def get_male_term(self, generation_method="gamblers-ruin-algorithm",
+                      **kwargs):
         """
         Generate a term using the given generation method
 
@@ -218,7 +220,7 @@ class BeamEnumerationAlgorithm():
         Returns:
             str: The generated term
         """
-        if generation_method == "GRA":
+        if generation_method == "gamblers-ruin-algorithm":
             return self.vtg.generate(
                 algorithm=generation_method,
                 prob=self.term_expansion_probability,
