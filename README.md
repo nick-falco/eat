@@ -71,11 +71,11 @@ The algorithms for the EAT programs were developed in the publications [1], [2],
 - the Female Beam Algorithm (**FBA**) of [4] and  
 - the Male-Female Beam Algorithm (**MFBA**) of [4].  
 
-An EAT program takes, as input, a **groupoid**, a **target operation** that is a term operation of that groupoid and one of the three **algorithms**. An n-element groupoid is specified by listing the entries in its table from left to right and then top to bottom. EAT has three ways to specify a `t`arget operation:  
+An EAT program takes, as input, a **groupoid**, a **target operation** that is a term operation of that groupoid and one of the three **algorithms**. An n-element groupoid is specified by listing the entries in its table from left to right and then top to bottom. EAT has three ways to specify a **t**arget operation:  
 
-- `-ttd` the `t`ernary `d`iscriminator operation $d(a, b, c) = c$ if $a = b$, else $a$
-- `-trg` a `r`andomly `g`enerated operation, by listing its values at each triple 
-- `-t` a user chosen `t`arget, by listing its values at each triple.
+- `-ttd` the **t**ernary **d**iscriminator operation $d(a, b, c) = c$ if $a = b$, else $a$
+- `-trg` a **r**andomly **g**enerated operation, by listing its values at each triple 
+- `-t` a user chosen **t**arget, by listing its values at each triple.
 
 For example, try entering `eat -g 2 1 2 1 0 0 0 0 1 -a MFBA -ttd, (return)`. EAT will use the 3-element groupoid $A_1 = 2 1 2 1 0 0 0 0 1$ and run the MFBA with the ternary discriminator operation as target. Well within a second it will find a term that represents the discriminator operation from among the $10^{13}$ operations represented by terms in the variables $x$, $y$ and $z$. Under that it will report the variable length of that term and the run time in seconds. After that it will confirm that it found a discriminator term by calculating the ternary discriminator operation and the term operation of that term to show that they are the same. You can replace `-a MFBA` with either `-a FBA` or `-a DDA` and replace `-ttd` with either `-trg` or your own chosen ternary operation to get similar results. For example, try entering `eat -g 1 2 0 1 2 2 0 1 0  -a DDA  -t 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1`.
 
