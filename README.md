@@ -37,7 +37,7 @@ $n = 3$ was found in 2008 [6] that took a run time of about 5 minutes. EAT gives
 
 ## Install Python
 If your computer does not already have **Python 3.7 or higher** installed, you will need to install it. To find out what version, if any, you already have,
-enter either “python –version” or “python3 –version”, (return). To install a current version, go to https://www.python.org/downloads and following the
+enter either `python --version` or `python3 --version`, (return). To install a current version, go to https://www.python.org/downloads and following the
 instructions for your operating system.
 
 - **For Mac and Linux:** After installing Python, you may need to restart your terminal
