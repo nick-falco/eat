@@ -17,7 +17,7 @@ $n = 3$ was found in 2008 [6] that took a run time of about 5 minutes. EAT gives
 # 1. Installation  
 **EAT** is a standalone Command Line Application. To install it, you need a command line **terminal** and a current version of **Python**.
 
-## Install the Terminal
+## Open the Terminal
 ### On Windows  
 1. Press **Windows key + R**  
 2. Type `cmd` and press Enter  
