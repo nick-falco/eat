@@ -161,9 +161,8 @@ class TermOperation():
             self.term_variables = term_variables
         else:
             self.term_variables = get_term_variables(self.groupoid.size)
-        self.input = self.get_input_array(size=len(self.term_variables))
-        self.mapped_input = self.get_mapped_input_array(
-            size=len(self.term_variables))
+        self.input = self.get_input_array()
+        self.mapped_input = self.get_mapped_input_array()
         self._target = None
         if target is not None:
             self.target = target

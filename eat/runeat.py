@@ -7,7 +7,7 @@ from eat.deep_drilling_algorithm.dda import DeepDrillingAlgorithm
 from eat.core.components import Groupoid, TermOperation
 from eat.core.utilities import log_execution_results_summary, \
     log_ac_table, get_logger, get_target_indexes_not_preserving_idempotents, \
-    get_input_tuples
+    get_input_tuples, condensed_array
 from eat.utilities.argparse_types import non_negative_integer, \
     positive_integer, restricted_float
 
@@ -386,7 +386,7 @@ def main():
         if (algorithm == "MFBA" or algorithm == "FBA" or algorithm == "SBA"):
             print(f"Running algorithm: {algorithm} (Run {i+1} of {run_count})")
             print(f"Groupoid:\n{grp}")
-            print(f"Target array: {to.target}")
+            print(f"Target array: {condensed_array(to.target, grp.size)}")
             print("--------------------------")
             beam = BeamEnumerationAlgorithm(
                 grp,
@@ -403,7 +403,7 @@ def main():
             print("Running algorithm: Deep Drilling Algorithm "
                   f"(Run {i+1} of {run_count})")
             print(f"Groupoid: {grp}")
-            print(f"Target array: {to.target}")
+            print(f"Target array: {condensed_array(to.target, grp.size)}")
             print("--------------------------")
             dda = DeepDrillingAlgorithm(grp, to, m=args.m)
             node, search_time = \

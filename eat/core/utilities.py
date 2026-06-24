@@ -177,7 +177,7 @@ def get_input_tuples(size):
     """
     return [tuple(p) for p in itertools.product(
             range(size),
-            repeat=size)]
+            repeat=3)]
 
 
 def get_target_indexes_not_preserving_idempotents(groupoid, target):
