@@ -141,8 +141,8 @@ def log_execution_results_summary(execution_results, run_count,
 
 def log_ac_table(table_output, log):
     # Calculate the maximum width for each column
-    col_widths = [max(len(f"{v:.6f}") for v in col)
-                  for col in zip(*table_output)]
+    col_widths = [max(len(str(value)) for value in column)
+                  for column in zip(*table_output)]
     header_widths = [max(len(f"B{i}"), col_width)
                      for i, col_width in enumerate(col_widths)]
 
@@ -158,29 +158,31 @@ def log_ac_table(table_output, log):
     # Log each row
     for i, row in enumerate(table_output):
         row_str = f"{i+1}".ljust(index_width) + " " + " ".join([
-            f"{v:.6f}".ljust(header_width)
-            for v, header_width in zip(row, header_widths)])
+            str(value).ljust(header_width)
+            for value, header_width in zip(row, header_widths)])
         log.info(row_str)
 
 
-def get_input_tuples(size):
+def get_input_tuples(size, arity=3):
     """
-    Returns a list of input tuples for a given groupoid size.
+    Returns a list of input tuples for a groupoid size and operation arity.
 
     e.g. [(0,0,0), (0,0,1), (0,0,2), (0,1,0), (0,1,1) ... etc.]
 
     :type size: int
     :param size: number of possible term elements
+    :type arity: int
+    :param arity: number of values in each input tuple
 
     :rtype: list
     :return: list of term operation inputs
     """
     return [tuple(p) for p in itertools.product(
             range(size),
-            repeat=3)]
+            repeat=arity)]
 
 
-def get_target_indexes_not_preserving_idempotents(groupoid, target):
+def get_target_indexes_not_preserving_idempotents(groupoid, target, arity=3):
     """
     Returns a list of target indexes where the target does not preserve
     idempotents for a specified groupoid. An element e is an idempotent if
@@ -197,7 +199,7 @@ def get_target_indexes_not_preserving_idempotents(groupoid, target):
     :return: list of target indexes that don't preserve idempotents
     """
     problematic_indexes = []
-    for idx, input_row in enumerate(get_input_tuples(groupoid.size)):
+    for idx, input_row in enumerate(get_input_tuples(groupoid.size, arity)):
         # Only consider diagonal tuples like (0,0,0), (1,1,1), etc.
         if len(set(input_row)) == 1:
             v = input_row[0]

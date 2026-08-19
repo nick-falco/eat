@@ -1,4 +1,5 @@
 import argparse
+from fractions import Fraction
 import platform
 import sys
 import os
@@ -58,8 +59,8 @@ def parse_arguments():
                            .format(platform.python_version()))
 
     parser = argparse.ArgumentParser(
-        usage='eat [-h] [--version] -g GROUPOID [GROUPOID ...] '
-              '[(-ttd | -trg | -t TARGET [TARGET ...]) | -ac] [options...]',
+          usage='eat [-h] [--version] -g GROUPOID [GROUPOID ...] '
+              '[(-ttd | -trg | -t TARGET [TARGET ...]) | -a AC] [options...]',
         description=(
             colorize('🧮 Evolution of Algebraic Terms (EAT',
                      BOLD_BLUE) + " " +
@@ -97,9 +98,17 @@ def parse_arguments():
             "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd -q', CYAN) + "\n" +
             "    " + colorize('Quiet mode', YELLOW) +
             " showing only final results\n\n" +
-            "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ac', CYAN) + "\n" +
+            "  " + colorize(
+                'eat -g 2 1 2 0 0 2 1 0 0 -a AC -d 0 1 2',
+                CYAN) + "\n" +
             "    " + colorize('Asymptotic completeness analysis', MAGENTA) +
-            " of the groupoid\n\n" +
+            " of the groupoid using the starting tuple (0, 1, 2)\n\n" +
+            "  " + colorize(
+                'eat -g 3 2 0 4 0 2 4 1 1 1 1 1 3 0 1 1 3 4 1 0 0 '
+                '1 0 1 0 -a AC -d 0 1 1', CYAN) + "\n" +
+            "    " + colorize('Asymptotic completeness analysis', MAGENTA) +
+            " for a 5-element groupoid using the starting tuple " +
+            "(0, 1, 1)\n\n" +
             colorize('🌟 DEFAULTS:', BOLD_GREEN) +
             " Verbose output and result summaries enabled. " +
             colorize('MFBA (Male-Female Beam Algorithm)', MAGENTA) +
@@ -108,8 +117,8 @@ def parse_arguments():
             colorize('-q', CYAN) + " for quiet mode, " +
             colorize('--no-print-summary', CYAN) + " to disable summaries, " +
             colorize('-a', CYAN) + " to change algorithms, " +
-            "or " + colorize('-ac', CYAN) + " for asymptotic completeness " +
-            "analysis."
+            "or " + colorize('-a AC', CYAN) + " for asymptotic " +
+            "completeness analysis."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -120,7 +129,7 @@ def parse_arguments():
     # ========== REQUIRED ARGUMENTS (grouped together) ==========
     required_group = parser.add_argument_group(
         '🔥 ' + colorize('REQUIRED ARGUMENTS', BOLD_YELLOW) +
-        ' (groupoid always required, target required unless using -ac)')
+        ' (groupoid always required, target required unless using -a AC)')
 
     required_group.add_argument('-g', '--groupoid',
                                 help=(
@@ -169,9 +178,11 @@ def parse_arguments():
               "Algorithm, " + colorize('FBA', MAGENTA) +
               " = Female Beam Algorithm, " +
               colorize('SBA', MAGENTA) +
-              " = Sample Beam Algorithm"),
+              " = Sample Beam Algorithm, " +
+              colorize('AC', MAGENTA) +
+              " = Asymptotic Completeness analysis"),
         type=str, default="MFBA",
-        choices=["DDA", "MFBA", "FBA", "SBA"])
+          choices=["DDA", "MFBA", "FBA", "SBA", "AC"])
     optional_group.add_argument(
         '-rc', '--run-count',
         help=("🔄 Number of evolutionary runs (default: 1). "
@@ -250,16 +261,14 @@ def parse_arguments():
                             action='store_true')
     ac_group = parser.add_argument_group(
         '🔬 ' + colorize('Advanced Analysis Options', BLUE))
-    ac_group.add_argument('-ac', '--asymptotic-complete',
-                          help=(
-                              "🧪 Test if the groupoid is asymptotically "
-                              "complete. Mathematical property analysis"),
-                          action='store_true')
-    ac_group.add_argument('-acp', '--ac-probabilities',
-                          help=(
-                              "📈 Probability values for asymptotic "
-                              "analysis (required when using -ac)"),
-                          nargs='+', type=restricted_float)
+    ac_group.add_argument(
+        '-d', dest='tuple',
+        help=(
+            "📈 Starting tuple for -a AC (required). Provide one groupoid "
+            "value per term variable. Example: -a AC -d 0 1 2"),
+        nargs='+', type=non_negative_integer)
+    ac_group.add_argument('--triple', dest='tuple', help=argparse.SUPPRESS,
+                          nargs='+', type=non_negative_integer)
     ac_group.add_argument('-th', '--table-height',
                           help=(
                               "📏 Height of analysis table (default: 700). "
@@ -279,13 +288,17 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    # Validate that either a target is specified OR -ac is used
-    if not args.asymptotic_complete and not (
+    # Validate that either a target is specified OR AC is selected.
+    if args.algorithm != "AC" and not (
             args.target or
             args.target_random_generated or
             args.target_ternary_discriminator):
         print("Error: A target must be specified (use -ttd, -trg, or -t) " +
-              "unless using -ac for asymptotic completeness analysis.")
+              "unless using -a AC for asymptotic completeness analysis.")
+        sys.exit(1)
+    if args.target_ternary_discriminator and len(args.term_variables) != 3:
+        print("Error: The ternary discriminator target (-ttd) requires "
+              "exactly 3 term variables.")
         sys.exit(1)
 
     # create groupoid table
@@ -307,7 +320,8 @@ def main():
         idx_with_idempotents = \
             get_target_indexes_not_preserving_idempotents(grp, to.target)
         if idx_with_idempotents:
-            input_tuples = get_input_tuples(grp.size)
+            input_tuples = get_input_tuples(grp.size,
+                                            len(args.term_variables))
             formatted_inputs = []
             for idx in idx_with_idempotents:
                 if idx < len(input_tuples):
@@ -330,19 +344,30 @@ def main():
                                                args.target_free_count)
 
     # Run AC check and return table
-    if args.asymptotic_complete is True:
+    if args.algorithm == "AC":
+        if args.tuple is None:
+            print("Error: Asymptotic completeness analysis requires a "
+                  "starting tuple. Use -d to specify it.")
+            sys.exit(1)
+        if len(args.tuple) != len(args.term_variables):
+            print("Error: The starting tuple must contain one value for "
+                  "each term variable.")
+            sys.exit(1)
+        if any(value >= grp.size for value in args.tuple):
+            print("Error: The starting tuple values must be present in the "
+                  "groupoid.")
+            sys.exit(1)
+
+        probabilities = [Fraction(args.tuple.count(value), len(args.tuple))
+                         for value in range(grp.size)]
         try:
-            ac_table = grp.is_asymptotic_complete(args.ac_probabilities,
+            ac_table = grp.is_asymptotic_complete(probabilities,
                                                   args.term_variables,
                                                   limit=args.table_height)
             log_ac_table(ac_table, LOG)
             return
         except ValueError as e:
-            if "probability values" in str(e):
-                print("Error: Asymptotic completeness analysis requires " +
-                      "probability values. Use -acp to specify them.")
-            else:
-                print(f"Error: {e}")
+            print(f"Error: {e}")
             sys.exit(1)
 
     mtgm = args.male_term_generation_method

@@ -1,7 +1,9 @@
 import unittest
+from fractions import Fraction
+from unittest.mock import Mock
 from eat.core.components import Groupoid, TermOperation
 from eat.core.utilities import split_male_term, \
-    get_target_indexes_not_preserving_idempotents
+    get_target_indexes_not_preserving_idempotents, log_ac_table
 
 
 class TestUtilities(unittest.TestCase):
@@ -64,6 +66,14 @@ class TestUtilities(unittest.TestCase):
             get_target_indexes_not_preserving_idempotents(
                 grp, bad_target_0_and_2),
             [0, 26])
+
+    def test_log_ac_table_displays_exact_fractions(self):
+        logger = Mock()
+        log_ac_table([[Fraction(1, 3), Fraction(1, 3), Fraction(1, 3)]],
+                     logger)
+
+        self.assertEqual(logger.info.call_args_list[1].args[0],
+                         "1 1/3 1/3 1/3")
 
 
 if __name__ == "__main__":

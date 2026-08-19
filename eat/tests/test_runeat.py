@@ -1,5 +1,7 @@
 import unittest
+from fractions import Fraction
 from unittest.mock import patch
+from types import SimpleNamespace
 import sys
 from eat.runeat import parse_arguments, main
 from io import StringIO
@@ -33,6 +35,100 @@ class TestRunEAT(unittest.TestCase):
         self.assertEqual(args.beam_width, 5)
         self.assertEqual(args.sub_beam_width, 2)
         self.assertTrue(args.include_validity_array)
+
+    def test_ac_requires_starting_tuple(self):
+        sys.argv = [
+            'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+            '0', '0', '1'
+        ]
+        args = parse_arguments()
+        self.assertEqual(args.algorithm, 'AC')
+
+        output = StringIO()
+        with patch('sys.stdout', new=output):
+            with self.assertRaises(SystemExit) as context:
+                main()
+        self.assertEqual(context.exception.code, 1)
+        self.assertIn('requires a starting tuple', output.getvalue())
+
+    def test_ac_derives_probabilities_from_starting_tuple(self):
+        sys.argv = [
+            'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+            '0', '0', '1', '-d', '0', '0', '2'
+        ]
+        with patch('eat.runeat.Groupoid.is_asymptotic_complete',
+                   autospec=True, return_value=[]) as ac_check:
+            with patch('eat.runeat.log_ac_table'):
+                main()
+
+        self.assertEqual(ac_check.call_args.args[1], [
+            Fraction(2, 3), Fraction(0, 1), Fraction(1, 3)
+        ])
+        self.assertEqual(sum(ac_check.call_args.args[1]), 1)
+        self.assertEqual(ac_check.call_args.args[2], ['x', 'y', 'z'])
+        self.assertEqual(ac_check.call_args.kwargs, {'limit': 700})
+
+    def test_ac_supports_starting_tuple_option(self):
+        sys.argv = [
+            'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+            '0', '0', '1', '-d', '0', '0', '2'
+        ]
+        args = parse_arguments()
+        self.assertEqual(args.tuple, [0, 0, 2])
+
+    def test_ac_validates_starting_tuple(self):
+        output = StringIO()
+        with patch('sys.stdout', new=output):
+            sys.argv = [
+                'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+                '0', '0', '1', '-d', '0', '1'
+            ]
+            with self.assertRaises(SystemExit) as context:
+                main()
+        self.assertEqual(context.exception.code, 1)
+        self.assertIn('one value for each term variable', output.getvalue())
+
+        output = StringIO()
+        with patch('sys.stdout', new=output):
+            sys.argv = [
+                'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+                '0', '0', '1', '-d', '0', '1', '3'
+            ]
+            with self.assertRaises(SystemExit) as context:
+                main()
+        self.assertEqual(context.exception.code, 1)
+        self.assertIn('must be present in the groupoid', output.getvalue())
+
+    def test_random_target_supports_four_term_variables(self):
+        sys.argv = [
+            'eat', '-tv', 'a', 'b', 'c', 'd', '-g', '2', '1', '2', '1',
+            '0', '0', '0', '0', '1', '-trg'
+        ]
+        output = StringIO()
+        with patch('sys.stdout', new=output):
+            with patch('eat.runeat.BeamEnumerationAlgorithm') as beam:
+                beam.return_value.run.return_value = (
+                    SimpleNamespace(term='a'), 0.0)
+                main()
+
+        term_operation = beam.call_args.args[1]
+        self.assertEqual(len(term_operation.input), 81)
+        self.assertTrue(all(
+            len(input_row) == 4 for input_row in term_operation.input))
+        self.assertEqual(len(term_operation.target), 81)
+
+    def test_ternary_target_requires_three_term_variables(self):
+        sys.argv = [
+            'eat', '-tv', 'a', 'b', 'c', 'd', '-g', '2', '1', '2', '1',
+            '0', '0', '0', '0', '1', '-ttd'
+        ]
+        output = StringIO()
+        with patch('sys.stdout', new=output):
+            with self.assertRaises(SystemExit) as context:
+                main()
+
+        self.assertEqual(context.exception.code, 1)
+        self.assertIn('requires exactly 3 term variables', output.getvalue())
 
     def test_main(self):
         """

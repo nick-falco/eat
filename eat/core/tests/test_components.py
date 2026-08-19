@@ -1,4 +1,6 @@
 import unittest
+from fractions import Fraction
+import math
 from eat.core.utilities import postfix_to_infix
 from eat.core.components import TermOperation, Groupoid
 
@@ -112,6 +114,32 @@ class TestTermOperation(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             term_op.target = invalid_target
         self.assertIn("not present in the groupoid", str(ctx.exception))
+
+    def test_four_variable_random_target(self):
+        grp = Groupoid(data=[0, 1,
+                             1, 0])
+        term_op = TermOperation(grp, term_variables=["a", "b", "c", "d"])
+        target = term_op.get_random_target_array()
+
+        self.assertEqual(len(term_op.input), 16)
+        self.assertTrue(all(len(input_row) == 4 for input_row in term_op.input))
+        self.assertEqual(len(target), 16)
+
+        for input_row, target_value in zip(term_op.input, target):
+            if len(set(input_row)) == 1:
+                self.assertEqual(target_value, [input_row[0]])
+
+    def test_ac_probability_rows_sum_to_one(self):
+        grp = Groupoid(data=[2, 1, 2,
+                             0, 0, 2,
+                             1, 0, 0])
+        table = grp.is_asymptotic_complete(
+            [Fraction(1, 3), Fraction(1, 3), Fraction(1, 3)],
+            ["x", "y", "z"], limit=5)
+
+        self.assertEqual(sum(table[0]), 1)
+        for row in table[1:]:
+            self.assertEqual(math.fsum(row), 1)
 
 
 if __name__ == "__main__":

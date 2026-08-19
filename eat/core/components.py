@@ -63,7 +63,7 @@ class Groupoid():
                         b_H_plus_1 = (i_H * series) + \
                                      ((1 - i_H) * probabilities[input_value])
                     else:
-                        b_H_plus_1 = 1 - sum(table[-1])
+                        b_H_plus_1 = 1 - math.fsum(table[-1])
                     table[-1].append(b_H_plus_1)  # add each probability value
                 probs = table[-1]  # Update probs for the next iteration
                 t_H = t_H_plus_1  # Update t_H for the next iteration
@@ -166,7 +166,7 @@ class TermOperation():
         self._target = None
         if target is not None:
             self.target = target
-        else:
+        elif len(self.term_variables) == 3:
             self.target = self.get_ternary_descriminator_target_array()
 
     @property
@@ -249,7 +249,7 @@ class TermOperation():
         """
         if size is None:
             size = self.groupoid.size
-        return get_input_tuples(size)
+        return get_input_tuples(size, len(self.term_variables))
 
     def get_random_target_array(self):
         """
@@ -273,7 +273,7 @@ class TermOperation():
 
         # Fix any positions that don't preserve idempotents
         indexes = get_target_indexes_not_preserving_idempotents(
-            self.groupoid, outputs)
+            self.groupoid, outputs, len(self.term_variables))
         for idx in indexes:
             x = inputs[idx][0]  # All values in diagonal tuple are the same
             outputs[idx] = [x]
@@ -287,7 +287,7 @@ class TermOperation():
 
         d(a, b, c) := {c if a == b; a if a != b}
         """
-        if len(self.term_variables) > 3:
+        if len(self.term_variables) != 3:
             raise ValueError("Ternary descriminator output only applies to "
                              "term operations with 3 term variables")
         target_array = []
