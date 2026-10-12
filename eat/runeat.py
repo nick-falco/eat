@@ -59,8 +59,8 @@ def parse_arguments():
                            .format(platform.python_version()))
 
     parser = argparse.ArgumentParser(
-          usage='eat [-h] [--version] -g GROUPOID [GROUPOID ...] '
-              '[(-ttd | -trg | -t TARGET [TARGET ...]) | -a AC] [options...]',
+        usage='eat [-h] [--version] -g GROUPOID [GROUPOID ...] '
+        '[(-ttd | -trg | -t TARGET [TARGET ...]) | -a ACA] [options...]',
         description=(
             colorize('🧮 Evolution of Algebraic Terms (EAT',
                      BOLD_BLUE) + " " +
@@ -85,7 +85,7 @@ def parse_arguments():
             colorize('📚 EXAMPLES:', BOLD_BLUE) + "\n" +
             "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd', CYAN) + "\n" +
             "    Basic evolution using " + colorize('MFBA', MAGENTA) +
-            " with ternary discriminator\n" +
+            " with ternary discriminator\n"
             "    target\n\n" +
             "  " + colorize('eat -g 2 1 2 1 0 0 0 0 1 -ttd -a DDA', CYAN) +
             "\n" +
@@ -99,13 +99,13 @@ def parse_arguments():
             "    " + colorize('Quiet mode', YELLOW) +
             " showing only final results\n\n" +
             "  " + colorize(
-                'eat -g 2 1 2 0 0 2 1 0 0 -a AC -d 0 1 2',
+                'eat -g 2 1 2 0 0 2 1 0 0 -a ACA -d 0 1 2',
                 CYAN) + "\n" +
             "    " + colorize('Asymptotic completeness analysis', MAGENTA) +
             " of the groupoid using the starting tuple (0, 1, 2)\n\n" +
             "  " + colorize(
                 'eat -g 3 2 0 4 0 2 4 1 1 1 1 1 3 0 1 1 3 4 1 0 0 '
-                '1 0 1 0 -a AC -d 0 1 1', CYAN) + "\n" +
+                '1 0 1 0 -a ACA -d 0 1 1', CYAN) + "\n" +
             "    " + colorize('Asymptotic completeness analysis', MAGENTA) +
             " for a 5-element groupoid using the starting tuple " +
             "(0, 1, 1)\n\n" +
@@ -117,7 +117,7 @@ def parse_arguments():
             colorize('-q', CYAN) + " for quiet mode, " +
             colorize('--no-print-summary', CYAN) + " to disable summaries, " +
             colorize('-a', CYAN) + " to change algorithms, " +
-            "or " + colorize('-a AC', CYAN) + " for asymptotic " +
+            "or " + colorize('-a ACA', CYAN) + " for asymptotic " +
             "completeness analysis."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
@@ -129,20 +129,20 @@ def parse_arguments():
     # ========== REQUIRED ARGUMENTS (grouped together) ==========
     required_group = parser.add_argument_group(
         '🔥 ' + colorize('REQUIRED ARGUMENTS', BOLD_YELLOW) +
-        ' (groupoid always required, target required unless using -a AC)')
+        ' (groupoid always required, target required unless using -a ACA)')
 
-    required_group.add_argument('-g', '--groupoid',
-                                help=(
-                                    colorize('⊞ Groupoid operation matrix',
-                                             BLUE) +
-                                    ". Binary operation table for " +
-                                    "algebraic " +
-                                    "structure. " +
-                                    "Example: " +
-                                    colorize('-g 2 1 2 1 0 0 0 0 1', CYAN)),
-                                nargs='+',
-                                type=non_negative_integer,
-                                required=True)
+    required_group.add_argument(
+        '-g', '--groupoid',
+        help=(
+            colorize('⊞ Groupoid operation matrix', BLUE) +
+            ". Binary operation table for " +
+            "algebraic " +
+            "structure. " +
+            "Example: " +
+            colorize('-g 2 1 2 1 0 0 0 0 1', CYAN)),
+        nargs='+',
+        type=non_negative_integer,
+        required=True)
 
     target_mutex = required_group.add_mutually_exclusive_group(
         required=False)
@@ -167,7 +167,8 @@ def parse_arguments():
         '⚙️  ' + colorize('Optional Configuration', BLUE))
 
     optional_group.add_argument(
-        '-a', '--algorithm',
+        '-a',
+        '--algorithm',
         help=(colorize('🔍 Evolutionary search algorithm', BLUE) +
               " " +
               "(default: " + colorize('MFBA', BOLD) + "). " +
@@ -179,10 +180,11 @@ def parse_arguments():
               " = Female Beam Algorithm, " +
               colorize('SBA', MAGENTA) +
               " = Sample Beam Algorithm, " +
-              colorize('AC', MAGENTA) +
+              colorize('ACA', MAGENTA) +
               " = Asymptotic Completeness analysis"),
-        type=str, default="MFBA",
-          choices=["DDA", "MFBA", "FBA", "SBA", "AC"])
+        type=str,
+        default="MFBA",
+        choices=["DDA", "MFBA", "FBA", "SBA", "ACA"])
     optional_group.add_argument(
         '-rc', '--run-count',
         help=("🔄 Number of evolutionary runs (default: 1). "
@@ -264,8 +266,8 @@ def parse_arguments():
     ac_group.add_argument(
         '-d', dest='tuple',
         help=(
-            "📈 Starting tuple for -a AC (required). Provide one groupoid "
-            "value per term variable. Example: -a AC -d 0 1 2"),
+            "📈 Starting tuple for -a ACA (required). Provide one groupoid "
+            "value per term variable. Example: -a ACA -d 0 1 2"),
         nargs='+', type=non_negative_integer)
     ac_group.add_argument('--triple', dest='tuple', help=argparse.SUPPRESS,
                           nargs='+', type=non_negative_integer)
@@ -288,13 +290,13 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    # Validate that either a target is specified OR AC is selected.
-    if args.algorithm != "AC" and not (
+    # Validate that either a target is specified OR ACA is selected.
+    if args.algorithm != "ACA" and not (
             args.target or
             args.target_random_generated or
             args.target_ternary_discriminator):
         print("Error: A target must be specified (use -ttd, -trg, or -t) " +
-              "unless using -a AC for asymptotic completeness analysis.")
+              "unless using -a ACA for asymptotic completeness analysis.")
         sys.exit(1)
     if args.target_ternary_discriminator and len(args.term_variables) != 3:
         print("Error: The ternary discriminator target (-ttd) requires "
@@ -344,7 +346,7 @@ def main():
                                                args.target_free_count)
 
     # Run AC check and return table
-    if args.algorithm == "AC":
+    if args.algorithm == "ACA":
         if args.tuple is None:
             print("Error: Asymptotic completeness analysis requires a "
                   "starting tuple. Use -d to specify it.")

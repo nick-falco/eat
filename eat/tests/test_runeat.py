@@ -36,13 +36,13 @@ class TestRunEAT(unittest.TestCase):
         self.assertEqual(args.sub_beam_width, 2)
         self.assertTrue(args.include_validity_array)
 
-    def test_ac_requires_starting_tuple(self):
+    def test_aca_requires_starting_tuple(self):
         sys.argv = [
-            'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+            'eat', '-a', 'ACA', '-g', '2', '1', '2', '1', '0', '0',
             '0', '0', '1'
         ]
         args = parse_arguments()
-        self.assertEqual(args.algorithm, 'AC')
+        self.assertEqual(args.algorithm, 'ACA')
 
         output = StringIO()
         with patch('sys.stdout', new=output):
@@ -51,9 +51,9 @@ class TestRunEAT(unittest.TestCase):
         self.assertEqual(context.exception.code, 1)
         self.assertIn('requires a starting tuple', output.getvalue())
 
-    def test_ac_derives_probabilities_from_starting_tuple(self):
+    def test_aca_derives_probabilities_from_starting_tuple(self):
         sys.argv = [
-            'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+            'eat', '-a', 'ACA', '-g', '2', '1', '2', '1', '0', '0',
             '0', '0', '1', '-d', '0', '0', '2'
         ]
         with patch('eat.runeat.Groupoid.is_asymptotic_complete',
@@ -68,19 +68,19 @@ class TestRunEAT(unittest.TestCase):
         self.assertEqual(ac_check.call_args.args[2], ['x', 'y', 'z'])
         self.assertEqual(ac_check.call_args.kwargs, {'limit': 700})
 
-    def test_ac_supports_starting_tuple_option(self):
+    def test_aca_supports_starting_tuple_option(self):
         sys.argv = [
-            'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+            'eat', '-a', 'ACA', '-g', '2', '1', '2', '1', '0', '0',
             '0', '0', '1', '-d', '0', '0', '2'
         ]
         args = parse_arguments()
         self.assertEqual(args.tuple, [0, 0, 2])
 
-    def test_ac_validates_starting_tuple(self):
+    def test_aca_validates_starting_tuple(self):
         output = StringIO()
         with patch('sys.stdout', new=output):
             sys.argv = [
-                'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+                'eat', '-a', 'ACA', '-g', '2', '1', '2', '1', '0', '0',
                 '0', '0', '1', '-d', '0', '1'
             ]
             with self.assertRaises(SystemExit) as context:
@@ -91,7 +91,7 @@ class TestRunEAT(unittest.TestCase):
         output = StringIO()
         with patch('sys.stdout', new=output):
             sys.argv = [
-                'eat', '-a', 'AC', '-g', '2', '1', '2', '1', '0', '0',
+                'eat', '-a', 'ACA', '-g', '2', '1', '2', '1', '0', '0',
                 '0', '0', '1', '-d', '0', '1', '3'
             ]
             with self.assertRaises(SystemExit) as context:

@@ -122,7 +122,8 @@ class TestTermOperation(unittest.TestCase):
         target = term_op.get_random_target_array()
 
         self.assertEqual(len(term_op.input), 16)
-        self.assertTrue(all(len(input_row) == 4 for input_row in term_op.input))
+        self.assertTrue(all(
+            len(input_row) == 4 for input_row in term_op.input))
         self.assertEqual(len(target), 16)
 
         for input_row, target_value in zip(term_op.input, target):
