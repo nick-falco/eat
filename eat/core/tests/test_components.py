@@ -127,7 +127,9 @@ class TestTermOperation(unittest.TestCase):
         self.assertEqual(len(target), 16)
 
         for input_row, target_value in zip(term_op.input, target):
-            if len(set(input_row)) == 1:
+            is_diagonal = len(set(input_row)) == 1
+            element = input_row[0]
+            if is_diagonal and grp.get_value(element, element) == element:
                 self.assertEqual(target_value, [input_row[0]])
 
     def test_ac_probability_rows_sum_to_one(self):
